@@ -4,10 +4,11 @@ import { compare } from 'fast-json-patch'
 import { decamelize, pascalize } from 'humps'
 import { isPlainObject, merge } from 'lodash'
 
+// TODO transform options for model and collection name
+// TODO fix `PatchModel` static on given schema
 const defaultOptions = {
   debug: false,
-  referenceUser: false,
-  suffix: 'patches'
+  referenceUser: false
 }
 
 export default function (schema, options) {
@@ -16,7 +17,8 @@ export default function (schema, options) {
   }
 
   check(isPlainObject(options), 'options must be an object')
-  check(options.mongoose, 'mongoose option must be defined')
+  check(options.mongoose, '`mongoose` option must be defined')
+  check(options.name, '`name` option must be defined')
   check(!schema.methods.data, 'conflicting instance method: `data`')
   check(!schema.methods.snapshot, 'conflicting instance method: `snapshot`')
 
@@ -43,46 +45,49 @@ export default function (schema, options) {
   }
 
   schema.virtual('patches').get(function () {
-    const getName = (transform) => {
-      return transform(`${this.constructor.modelName}_${opts.suffix}`)
-    }
-    const modelName = getName(pascalize)
-    const collectionName = getName(decamelize)
-
-    const schemaDef = {
-      date: { type: Date, required: true, default: Date.now },
-      ops: { type: [], required: true },
-      ref: { type: Schema.Types.ObjectId, required: true }
-    }
-    if (opts.referenceUser) {
-      schemaDef.user = { type: Schema.Types.ObjectId, required: true }
-    }
-
-    const PatchSchema = new Schema(schemaDef)
-
-    PatchSchema.statics.log = (coll, method, query) => {
-      const prefix = chalk.yellow.bold('mongoose-patch-history')
-      console.log(`${prefix} ${coll}.${method}(${JSON.stringify(query)})`)
-    }
-
-    PatchSchema.pre('save', function (next) {
-      if (opts.debug) {
-        mongoose.set('debug', PatchSchema.log)
-      }
-      next()
-    })
-
-    PatchSchema.post('save', function () {
-      if (opts.debug) {
-        mongoose.set('debug', false)
-      }
-    })
-
-    schema.statics.PatchModel = schema.statics.PatchModel ||
-      mongoose.model(modelName, PatchSchema, collectionName)
-
     return schema.statics.PatchModel
   })
+
+  const getName = (transform) => {
+    return transform(`${opts.name}`)
+  }
+  const modelName = getName(pascalize)
+  const collectionName = getName(decamelize)
+
+  const schemaDef = {
+    date: { type: Date, required: true, default: Date.now },
+    ops: { type: [], required: true },
+    ref: { type: Schema.Types.ObjectId, required: true }
+  }
+  if (opts.referenceUser) {
+    schemaDef.user = { type: Schema.Types.ObjectId, required: true }
+  }
+
+  const PatchSchema = new Schema(schemaDef)
+
+  PatchSchema.statics.log = (coll, method, query) => {
+    const prefix = chalk.yellow.bold('mongoose-patch-history')
+    console.log(`${prefix} ${coll}.${method}(${JSON.stringify(query)})`)
+  }
+
+  PatchSchema.pre('save', function (next) {
+    if (opts.debug) {
+      mongoose.set('debug', PatchSchema.log)
+    }
+    next()
+  })
+
+  PatchSchema.post('save', function () {
+    if (opts.debug) {
+      mongoose.set('debug', false)
+    }
+  })
+
+  schema.statics.PatchModel = mongoose.model(
+    modelName,
+    PatchSchema,
+    collectionName
+  )
 
   // after a document is initialized or saved, fresh snapshots of the
   // documents data are created

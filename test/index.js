@@ -3,35 +3,38 @@ import { join } from 'bluebird'
 import mongoose, { Schema } from 'mongoose'
 import patchHistory from '../src'
 import ModelFactory from './model_factory'
-import getCollectionNames from './get_collection_names'
+// import getCollectionNames from './get_collection_names'
 
 describe('mongoose-patch-history', () => {
   const email = 'christoph@codepunkt.de'
-  let Comment, Debug, Post, Suffix, User
+  let Comment, Debug, Post, User
 
   before(() => {
-    Comment = ModelFactory.create('Comment', { referenceUser: true })
-    Debug = ModelFactory.create('Debug', { debug: true })
-    Post = ModelFactory.create('Post', {})
-    Suffix = ModelFactory.create('Suffix', { suffix: 'history' })
+    Comment = ModelFactory.create('Comment', {
+      referenceUser: true,
+      name: 'CommentHistory'
+    })
+    Debug = ModelFactory.create('Debug', {
+      debug: true,
+      name: 'DebugHistory'
+    })
+    Post = ModelFactory.create('Post', {
+      name: 'PostHistory'
+    })
     User = ModelFactory.create('User')
   })
 
   before((done) => {
     // mongoose.set('debug', true)
     mongoose.connect('mongodb://localhost/mongoose-patch-history', () => {
-      const emptyCollections = join(
-        Comment.remove(), Debug.remove(), Post.remove(),
-        Suffix.remove(), User.remove()
-      )
-
-      emptyCollections
+      join(Comment.remove(), Debug.remove(), Post.remove(), User.remove())
         .then(() => User.create({ prop: email }))
         .then(() => done())
     })
   })
 
   describe('initialization', () => {
+    const name = 'History'
     let TestSchema
 
     before(() => {
@@ -52,21 +55,25 @@ describe('mongoose-patch-history', () => {
       assert.throws(() => TestSchema.plugin(patchHistory, () => {}))
     })
 
-    it('throws when mongoose option is not defined', () => {
-      assert.throws(() => TestSchema.plugin(patchHistory, {}))
+    it('throws when `mongoose` option is not defined', () => {
+      assert.throws(() => TestSchema.plugin(patchHistory, { name }))
+    })
+
+    it('throws when `name` option is not defined', () => {
+      assert.throws(() => TestSchema.plugin(patchHistory, { mongoose }))
     })
 
     it('throws when either `data` or `snapshot` instance methods exist', () => {
       const DataSchema = new Schema()
       DataSchema.methods.data = () => {}
-      assert.throws(() => DataSchema.plugin(patchHistory, { mongoose }))
+      assert.throws(() => DataSchema.plugin(patchHistory, { mongoose, name }))
       const SnapshotSchema = new Schema()
       SnapshotSchema.methods.snapshot = () => {}
-      assert.throws(() => SnapshotSchema.plugin(patchHistory, { mongoose }))
+      assert.throws(() => SnapshotSchema.plugin(patchHistory, { mongoose, name }))
     })
 
     it('does not throw with valid parameters', () => {
-      assert.doesNotThrow(() => TestSchema.plugin(patchHistory, { mongoose }))
+      assert.doesNotThrow(() => TestSchema.plugin(patchHistory, { mongoose, name }))
     })
   })
 
@@ -127,31 +134,6 @@ describe('mongoose-patch-history', () => {
         .then((patches) => {
           assert.equal(patches.length, 0)
         }).then(done).catch(done)
-    })
-  })
-
-  describe('naming', () => {
-    it('suffix option adds suffix to both collection and model', (done) => {
-      Suffix.create({ prop: 'qux' })
-        .then((model) => getCollectionNames())
-        .then((names) => {
-          assert.ok(!!~mongoose.modelNames().indexOf('SuffixHistory'))
-          assert.ok(!!~names.indexOf('suffix_history'))
-        }).then(done).catch(done)
-    })
-
-    it('collection default is `${model}_patches`', (done) => {
-      getCollectionNames().then((names) => {
-        assert.ok(!!~names.indexOf('comment_patches'))
-        assert.ok(!!~names.indexOf('post_patches'))
-      }).then(done).catch(done)
-    })
-
-    it('model default is `${Model}History`', (done) => {
-      const modelNames = mongoose.modelNames()
-      assert.ok(!!~modelNames.indexOf('CommentPatches'))
-      assert.ok(!!~modelNames.indexOf('PostPatches'))
-      done()
     })
   })
 })
