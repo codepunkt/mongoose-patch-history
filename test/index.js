@@ -44,7 +44,7 @@ describe('mongoose-patch-history', () => {
     mongoose.connect('mongodb://localhost/mongoose-patch-history', () => {
       join(
         Comment.remove(),
-        Comment.PatchModel.remove(),
+        Comment.Patches.remove(),
         Post.remove(),
         User.remove()
       )

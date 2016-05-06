@@ -49,7 +49,7 @@ console.log(patch)
 
 ### Updating an existing document
 
-__mongoose-patch-history__ also adds a static field `PatchModel` to the model that can be used to access the patch model associated with the model, for example to query all patches of a document. Whenever a post is edited, a new patch that reflects the update operation is added to the associated patch collection:
+__mongoose-patch-history__ also adds a static field `Patches` to the model that can be used to access the patch model associated with the model, for example to query all patches of a document. Whenever a post is edited, a new patch that reflects the update operation is added to the associated patch collection:
 
 ```javascript
 const data = {
@@ -58,7 +58,7 @@ const data = {
 }
 
 await post.set(data).save()
-const patches = await Post.PatchModel.find({ ref: post.id })
+const patches = await Post.Patches.find({ ref: post.id })
 
 console.log(patches)
 

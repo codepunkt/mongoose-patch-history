@@ -49,11 +49,11 @@ export default function (schema, opts) {
     })
   }
 
-  // create patch model, enable static model access via `PatchModel` and
+  // create patch model, enable static model access via `Patches` and
   // instance method access through an instances `patches` property
-  const PatchModel = createPatchModel(options)
-  schema.statics.PatchModel = PatchModel
-  schema.virtual('patches').get(() => PatchModel)
+  const Patches = createPatchModel(options)
+  schema.statics.Patches = Patches
+  schema.virtual('patches').get(() => Patches)
 
   // after a document is initialized or saved, fresh snapshots of the
   // documents data are created
@@ -95,6 +95,6 @@ export default function (schema, opts) {
       data[name] = this[type.from || name]
     })
 
-    PatchModel.create(data).then(next).catch(next)
+    this.patches.create(data).then(next).catch(next)
   })
 }
