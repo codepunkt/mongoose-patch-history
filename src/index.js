@@ -1,30 +1,53 @@
-import chalk from 'chalk'
+import assert from 'assert'
+import { merge } from 'lodash'
+import { join } from 'bluebird'
 import { Schema } from 'mongoose'
 import { compare } from 'fast-json-patch'
 import { decamelize, pascalize } from 'humps'
-import { isPlainObject, merge } from 'lodash'
 
 // TODO transform options for model and collection name
-// TODO fix `PatchModel` static on given schema
+const createPatchModel = (options) => {
+  const def = {
+    date: { type: Date, required: true, default: Date.now },
+    ops: { type: [], required: true },
+    ref: { type: Schema.Types.ObjectId, required: true, index: true },
+    user: { type: Schema.Types.ObjectId, required: true }
+  }
+
+  if (!options.referenceUser) {
+    delete def.user
+  }
+
+  const PatchSchema = new Schema(def)
+
+  return options.mongoose.model(
+    pascalize(`${options.name}`),
+    PatchSchema,
+    decamelize(`${options.name}`)
+  )
+}
+
 const defaultOptions = {
-  debug: false,
   referenceUser: false
 }
 
-export default function (schema, options) {
-  const check = (bool, message) => {
-    if (!bool) throw new Error(message)
+export default function (schema, opts) {
+  const options = merge({}, defaultOptions, opts)
+
+  // validate parameters
+  assert(options.mongoose, '`mongoose` option must be defined')
+  assert(options.name, '`name` option must be defined')
+  assert(!schema.methods.data, 'conflicting instance method: `data`')
+
+  // TODO comment
+  if (options.referenceUser) {
+    schema.virtual('user').set(function (user) {
+      this._user = user
+    })
   }
 
-  check(isPlainObject(options), 'options must be an object')
-  check(options.mongoose, '`mongoose` option must be defined')
-  check(options.name, '`name` option must be defined')
-  check(!schema.methods.data, 'conflicting instance method: `data`')
-  check(!schema.methods.snapshot, 'conflicting instance method: `snapshot`')
-
-  const opts = merge({}, defaultOptions, options)
-  const mongoose = opts.mongoose
-
+  // used to compare instance data snapshots. depopulates instance,
+  // removes version key and object id
   schema.methods.data = function () {
     return this.toObject({
       depopulate: true,
@@ -33,76 +56,27 @@ export default function (schema, options) {
     })
   }
 
-  schema.methods.snapshot = function () {
-    this._original = this.data()
-    return this
-  }
-
-  if (opts.referenceUser) {
-    schema.virtual('user').set(function (user) {
-      this._user = user
-    })
-  }
-
-  schema.virtual('patches').get(function () {
-    return schema.statics.PatchModel
-  })
-
-  const getName = (transform) => {
-    return transform(`${opts.name}`)
-  }
-  const modelName = getName(pascalize)
-  const collectionName = getName(decamelize)
-
-  const schemaDef = {
-    date: { type: Date, required: true, default: Date.now },
-    ops: { type: [], required: true },
-    ref: { type: Schema.Types.ObjectId, required: true }
-  }
-  if (opts.referenceUser) {
-    schemaDef.user = { type: Schema.Types.ObjectId, required: true }
-  }
-
-  const PatchSchema = new Schema(schemaDef)
-
-  PatchSchema.statics.log = (coll, method, query) => {
-    const prefix = chalk.yellow.bold('mongoose-patch-history')
-    console.log(`${prefix} ${coll}.${method}(${JSON.stringify(query)})`)
-  }
-
-  PatchSchema.pre('save', function (next) {
-    if (opts.debug) {
-      mongoose.set('debug', PatchSchema.log)
-    }
-    next()
-  })
-
-  PatchSchema.post('save', function () {
-    if (opts.debug) {
-      mongoose.set('debug', false)
-    }
-  })
-
-  schema.statics.PatchModel = mongoose.model(
-    modelName,
-    PatchSchema,
-    collectionName
-  )
+  // create patch model, enable static model access via `PatchModel` and
+  // instance method access through an instances `patches` property
+  const PatchModel = createPatchModel(options)
+  schema.statics.PatchModel = PatchModel
+  schema.virtual('patches').get(() => PatchModel)
 
   // after a document is initialized or saved, fresh snapshots of the
   // documents data are created
-  schema.post('init', function () {
-    this.snapshot()
-  })
-  schema.post('save', function () {
-    this.snapshot()
-  })
+  const snapshot = function () {
+    this._original = this.data()
+  }
+  schema.post('init', snapshot)
+  schema.post('save', snapshot)
 
   // when a document is removed, all patch documents from the associated
   // patch collection are also removed
   schema.pre('remove', function (next) {
     const { _id: ref } = this
-    this.patches.remove({ ref }).then(next).catch(next)
+    this.patches.find({ ref })
+      .then((patches) => join(patches.map((patch) => patch.remove())))
+      .then(next).catch(next)
   })
 
   // when a document is saved, the json patch that reflects the changes is
@@ -118,7 +92,7 @@ export default function (schema, options) {
       return next()
     }
 
-    const data = opts.referenceUser ? { ops, ref, user } : { ops, ref }
-    this.patches.create(data).then(next).catch(next)
+    const data = options.referenceUser ? { ops, ref, user } : { ops, ref }
+    PatchModel.create(data).then(next).catch(next)
   })
 }

@@ -7,16 +7,12 @@ import ModelFactory from './model_factory'
 
 describe('mongoose-patch-history', () => {
   const email = 'christoph@codepunkt.de'
-  let Comment, Debug, Post, User
+  let Comment, Post, User
 
   before(() => {
     Comment = ModelFactory.create('Comment', {
       referenceUser: true,
       name: 'CommentHistory'
-    })
-    Debug = ModelFactory.create('Debug', {
-      debug: true,
-      name: 'DebugHistory'
     })
     Post = ModelFactory.create('Post', {
       name: 'PostHistory'
@@ -27,7 +23,7 @@ describe('mongoose-patch-history', () => {
   before((done) => {
     // mongoose.set('debug', true)
     mongoose.connect('mongodb://localhost/mongoose-patch-history', () => {
-      join(Comment.remove(), Debug.remove(), Post.remove(), User.remove())
+      join(Comment.remove(), Post.remove(), User.remove())
         .then(() => User.create({ prop: email }))
         .then(() => done())
     })
@@ -41,20 +37,6 @@ describe('mongoose-patch-history', () => {
       TestSchema = new Schema()
     })
 
-    it('throws without options', () => {
-      assert.throws(() => TestSchema.plugin(patchHistory))
-    })
-
-    it('throws when options is not an object', () => {
-      assert.throws(() => TestSchema.plugin(patchHistory, []))
-      assert.throws(() => TestSchema.plugin(patchHistory, 'string'))
-      assert.throws(() => TestSchema.plugin(patchHistory, 42))
-      assert.throws(() => TestSchema.plugin(patchHistory, true))
-      assert.throws(() => TestSchema.plugin(patchHistory, null))
-      assert.throws(() => TestSchema.plugin(patchHistory, NaN))
-      assert.throws(() => TestSchema.plugin(patchHistory, () => {}))
-    })
-
     it('throws when `mongoose` option is not defined', () => {
       assert.throws(() => TestSchema.plugin(patchHistory, { name }))
     })
@@ -63,13 +45,10 @@ describe('mongoose-patch-history', () => {
       assert.throws(() => TestSchema.plugin(patchHistory, { mongoose }))
     })
 
-    it('throws when either `data` or `snapshot` instance methods exist', () => {
+    it('throws when `data` instance method exists', () => {
       const DataSchema = new Schema()
       DataSchema.methods.data = () => {}
       assert.throws(() => DataSchema.plugin(patchHistory, { mongoose, name }))
-      const SnapshotSchema = new Schema()
-      SnapshotSchema.methods.snapshot = () => {}
-      assert.throws(() => SnapshotSchema.plugin(patchHistory, { mongoose, name }))
     })
 
     it('does not throw with valid parameters', () => {
@@ -107,7 +86,7 @@ describe('mongoose-patch-history', () => {
     it('with changes: adds a patch', (done) => {
       Post.findOne({ prop: 'foo' })
         .then((post) => post.set({ prop: 'bar' }).save())
-        .then((post) => post.patches.find({ ref: post.id }))
+        .then((post) => post.patches.find({ ref: post.id }).sort({ _id: 1 }))
         .then((patches) => {
           assert.equal(patches.length, 2)
           assert.deepEqual(patches[1].ops, [
@@ -127,7 +106,7 @@ describe('mongoose-patch-history', () => {
   })
 
   describe('removing a document', () => {
-    it('also removes all patches', (done) => {
+    it('removes all patches', (done) => {
       Post.findOne({ prop: 'bar' })
         .then((post) => post.remove())
         .then((post) => post.patches.find({ ref: post.id }))
