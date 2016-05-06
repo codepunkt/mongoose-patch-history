@@ -143,7 +143,7 @@ PostSchema.plugin(patchHistory, {
 
 // create post, pass in user information
 const post = await Post.create({
-  title: 'Included in every patch',
+  title: 'Why is hiring broken?',
   user: new mongoose.Types.ObjectId()
 })
 
