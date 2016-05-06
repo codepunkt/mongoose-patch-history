@@ -124,4 +124,6 @@ describe('mongoose-patch-history', () => {
         }).then(done).catch(done)
     })
   })
+
+  // TODO test `transforms` option
 })

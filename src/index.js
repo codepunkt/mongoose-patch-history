@@ -21,15 +21,16 @@ const createPatchModel = (options) => {
   const PatchSchema = new Schema(def)
 
   return options.mongoose.model(
-    pascalize(`${options.name}`),
+    options.transforms[0](`${options.name}`),
     PatchSchema,
-    decamelize(`${options.name}`)
+    options.transforms[1](`${options.name}`)
   )
 }
 
 const defaultOptions = {
   referenceUser: false,
-  removePatches: true
+  removePatches: true,
+  transforms: [ pascalize, decamelize ]
 }
 
 export default function (schema, opts) {
