@@ -1,9 +1,9 @@
 import assert from 'assert'
-import { join } from 'bluebird'
 import { Schema } from 'mongoose'
-import { compare } from 'fast-json-patch'
+import Promise, { join } from 'bluebird'
+import jsonpatch from 'fast-json-patch'
 import { decamelize, pascalize } from 'humps'
-import { each, merge, omit } from 'lodash'
+import { dropRightWhile, each, map, merge, omit } from 'lodash'
 
 const createPatchModel = (options) => {
   const def = {
@@ -45,8 +45,33 @@ export default function (schema, opts) {
     return this.toObject({
       depopulate: true,
       versionKey: false,
-      transform: (doc, ret, options) => { delete ret._id }
+      // TODO don't filter out createdAt and updatedAt only, but create
+      // a blacklist of properties that should be ignored while comparing
+      transform: (doc, ret, options) => {
+        delete ret._id
+        delete ret.createdAt
+        delete ret.updatedAt
+      }
     })
+  }
+
+  // TODO comment this
+  schema.methods.rollback = function (patchId) {
+    return this.patches.find({ ref: this.id }).sort({ date: 1 }).exec()
+      .then((patches) => new Promise((resolve, reject) => {
+        const ids = map(patches, 'id')
+        if (!~ids.indexOf(patchId)) return resolve()
+        const apply = dropRightWhile(patches, (patch) => {
+          return patch.id !== patchId
+        })
+        if (patches.length === apply.length) return resolve()
+        const data = { user: apply[apply.length - 1].user }
+        apply.forEach((patch) => {
+          jsonpatch.apply(data, patch.ops, true)
+        })
+        console.log(data)
+        this.set(data).save().then(resolve).catch(reject)
+      }))
   }
 
   // create patch model, enable static model access via `Patches` and
@@ -82,7 +107,7 @@ export default function (schema, opts) {
   // added to the associated patch collection
   schema.pre('save', function (next) {
     const { _id: ref } = this
-    const ops = compare(this.isNew ? {} : this._original, this.data())
+    const ops = jsonpatch.compare(this.isNew ? {} : this._original, this.data())
 
     // don't save a patch when there are no changes to save
     if (!ops.length) {
