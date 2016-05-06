@@ -12,6 +12,7 @@ describe('mongoose-patch-history', () => {
   before(() => {
     Comment = ModelFactory.create('Comment', {
       referenceUser: true,
+      removePatches: false,
       name: 'CommentHistory'
     })
     Post = ModelFactory.create('Post', {
@@ -112,6 +113,14 @@ describe('mongoose-patch-history', () => {
         .then((post) => post.patches.find({ ref: post.id }))
         .then((patches) => {
           assert.equal(patches.length, 0)
+        }).then(done).catch(done)
+    })
+    it('doesn\'t remove patches when `removePatches` is false', (done) => {
+      Comment.findOne({ prop: 'wat' })
+        .then((comment) => comment.remove())
+        .then((comment) => comment.patches.find({ ref: comment.id }))
+        .then((patches) => {
+          assert.equal(patches.length, 1)
         }).then(done).catch(done)
     })
   })

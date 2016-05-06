@@ -28,7 +28,8 @@ const createPatchModel = (options) => {
 }
 
 const defaultOptions = {
-  referenceUser: false
+  referenceUser: false,
+  removePatches: true
 }
 
 export default function (schema, opts) {
@@ -70,9 +71,13 @@ export default function (schema, opts) {
   schema.post('init', snapshot)
   schema.post('save', snapshot)
 
-  // when a document is removed, all patch documents from the associated
-  // patch collection are also removed
+  // when a document is removed and `removePatches` is not set to false ,
+  // all patch documents from the associated patch collection are also removed
   schema.pre('remove', function (next) {
+    if (!options.removePatches) {
+      return next()
+    }
+
     const { _id: ref } = this
     this.patches.find({ ref })
       .then((patches) => join(patches.map((patch) => patch.remove())))
