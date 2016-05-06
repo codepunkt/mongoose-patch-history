@@ -32,10 +32,10 @@
     "prepublish": "npm run compile",
     "test": "npm run lint && mocha --compilers js:babel-register"
   },
-  "pre-commit": [
-    "test",
-    "compile"
-  ],
+  "pre-commit": {
+    "run": "test, compile",
+    "silent": true
+  },
   "repository": {
     "type": "git",
     "url": "git://github.com/gonsfx/mongoose-patch-history"
