@@ -25,6 +25,7 @@
     "pre-commit": "^1.1.2"
   },
   "scripts": {
+    "addCompile": "git add lib/",
     "coverage": "istanbul cover _mocha -- --compilers js:babel-register",
     "compile": "babel -d lib/ src/",
     "lint": "eslint {src,test}/**",
@@ -32,7 +33,7 @@
     "test": "npm run lint && mocha --compilers js:babel-register"
   },
   "pre-commit": {
-    "run": "test, compile",
+    "run": "test, compile, addCompile",
     "silent": true
   },
   "repository": {
