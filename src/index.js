@@ -1,22 +1,20 @@
 import assert from 'assert'
-import { merge } from 'lodash'
 import { join } from 'bluebird'
 import { Schema } from 'mongoose'
 import { compare } from 'fast-json-patch'
 import { decamelize, pascalize } from 'humps'
+import { each, merge, omit } from 'lodash'
 
-// TODO transform options for model and collection name
 const createPatchModel = (options) => {
   const def = {
     date: { type: Date, required: true, default: Date.now },
     ops: { type: [], required: true },
-    ref: { type: Schema.Types.ObjectId, required: true, index: true },
-    user: { type: Schema.Types.ObjectId, required: true }
+    ref: { type: Schema.Types.ObjectId, required: true, index: true }
   }
 
-  if (!options.referenceUser) {
-    delete def.user
-  }
+  each(options.includes, (type, name) => {
+    def[name] = omit(type, 'from')
+  })
 
   const PatchSchema = new Schema(def)
 
@@ -28,7 +26,7 @@ const createPatchModel = (options) => {
 }
 
 const defaultOptions = {
-  referenceUser: false,
+  includes: {},
   removePatches: true,
   transforms: [ pascalize, decamelize ]
 }
@@ -40,13 +38,6 @@ export default function (schema, opts) {
   assert(options.mongoose, '`mongoose` option must be defined')
   assert(options.name, '`name` option must be defined')
   assert(!schema.methods.data, 'conflicting instance method: `data`')
-
-  // TODO comment
-  if (options.referenceUser) {
-    schema.virtual('user').set(function (user) {
-      this._user = user
-    })
-  }
 
   // used to compare instance data snapshots. depopulates instance,
   // removes version key and object id
@@ -90,15 +81,20 @@ export default function (schema, opts) {
   // document has changed), a new patch document reflecting the changes is
   // added to the associated patch collection
   schema.pre('save', function (next) {
-    const { _id: ref, _user: user } = this
+    const { _id: ref } = this
     const ops = compare(this.isNew ? {} : this._original, this.data())
 
-    // except when there are no changes to save
+    // don't save a patch when there are no changes to save
     if (!ops.length) {
       return next()
     }
 
-    const data = options.referenceUser ? { ops, ref, user } : { ops, ref }
+    // assemble patch data
+    const data = { ops, ref }
+    each(options.includes, (type, name) => {
+      data[name] = this[type.from || name]
+    })
+
     PatchModel.create(data).then(next).catch(next)
   })
 }
