@@ -13,6 +13,9 @@ CommentSchema.plugin(patchHistory, {
   name: 'commentPatches',
   removePatches: false,
   includes: {
+    text: {
+      type: String
+    },
     user: {
       type: Schema.Types.ObjectId,
       required: true,
