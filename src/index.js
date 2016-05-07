@@ -56,20 +56,35 @@ export default function (schema, opts) {
   }
 
   // TODO comment this
-  schema.methods.rollback = function (patchId) {
+  schema.methods.rollback = function (patchId, data) {
     return this.patches.find({ ref: this.id }).sort({ date: 1 }).exec()
       .then((patches) => new Promise((resolve, reject) => {
         const ids = map(patches, 'id')
-        if (!~ids.indexOf(patchId)) return resolve()
+
+        // if patch doesn't exist, resolve with undefined
+        if (!~ids.indexOf(patchId)) {
+          return resolve()
+        }
+
+        // get all patches that should be applied
         const apply = dropRightWhile(patches, (patch) => {
           return patch.id !== patchId
         })
-        if (patches.length === apply.length) return resolve()
+
+        // if the applied patches equal all patches, a rollback to the current
+        // state is attempted. in this case, resolve with undefined
+        if (patches.length === apply.length) {
+          return resolve()
+        }
+
+        // apply patches to `data`
+        // TODO user
         const data = { user: apply[apply.length - 1].user }
         apply.forEach((patch) => {
           jsonpatch.apply(data, patch.ops, true)
         })
-        console.log(data)
+
+        // save new `data` and resolve with the resulting document
         this.set(data).save().then(resolve).catch(reject)
       }))
   }
