@@ -4,6 +4,8 @@ import Promise, { join } from 'bluebird'
 import mongoose, { Schema } from 'mongoose'
 import patchHistory from '../src'
 
+const ObjectId = mongoose.Types.ObjectId
+
 const CommentSchema = new Schema({ text: String })
 CommentSchema.virtual('user').set(function (user) {
   this._user = user
@@ -76,7 +78,10 @@ describe('mongoose-patch-history', () => {
     })
 
     it('does not throw with valid parameters', () => {
-      assert.doesNotThrow(() => TestSchema.plugin(patchHistory, { mongoose, name }))
+      assert.doesNotThrow(() => TestSchema.plugin(patchHistory, {
+        mongoose,
+        name
+      }))
     })
   })
 
@@ -94,7 +99,7 @@ describe('mongoose-patch-history', () => {
           }),
         // with referenced user
         User.findOne()
-          .then((user) => Comment.create({ text: 'wat', user: mongoose.Types.ObjectId() }))
+          .then((user) => Comment.create({ text: 'wat', user: ObjectId() }))
           .then((comment) => comment.patches.find({ ref: comment.id }))
           .then((patches) => {
             assert.equal(patches.length, 1)
@@ -148,6 +153,44 @@ describe('mongoose-patch-history', () => {
     })
   })
 
+  describe('rollback', () => {
+    it('with unknown id is rejected', (done) => {
+      Post.create({ title: 'version 1' })
+        .then((post) => {
+          return post.rollback(ObjectId())
+            .then(() => { assert(false); done() })
+            .catch((err) => { assert(err instanceof Error); done() })
+        })
+    })
+
+    it('to latest patch is rejected', (done) => {
+      Post.create({ title: 'version 1' })
+        .then((post) => join(post, post.patches.findOne({ ref: post.id })))
+        .then(([post, latestPatch]) => {
+          return post.rollback(latestPatch.id)
+            .then(() => { assert(false); done() })
+            .catch((err) => { assert(err instanceof Error); done() })
+        })
+    })
+
+    it('adds a new patch and updates the document', (done) => {
+      Comment.create({ text: 'comm 1', user: ObjectId() })
+        .then((c) => Comment.findOne({ _id: c.id }))
+        .then((c) => c.set({ text: 'comm 2', user: ObjectId() }).save())
+        .then((c) => Comment.findOne({ _id: c.id }))
+        .then((c) => c.set({ text: 'comm 3', user: ObjectId() }).save())
+        .then((c) => Comment.findOne({ _id: c.id }))
+        .then((c) => join(c, c.patches.find({ ref: c.id })))
+        .then(([c, patches]) => c.rollback(patches[1].id, { user: ObjectId() }))
+        .then((c) => {
+          assert.equal(c.text, 'comm 2')
+          return c.patches.find({ ref: c.id })
+        })
+        .then((patches) => assert.equal(patches.length, 4))
+        .then(done).catch(done)
+    })
+  })
+
   describe('model and collection names', () => {
     const getCollectionNames = () => {
       return new Promise((resolve, reject) => {
@@ -160,18 +203,18 @@ describe('mongoose-patch-history', () => {
 
     it('pascalize for model and decamelize for collection', (done) => {
       join(
-        () => assert.ok(!!~mongoose.modelNames().indexOf('CommentPatches')),
+        () => assert(!!~mongoose.modelNames().indexOf('CommentPatches')),
         getCollectionNames().then((names) => {
-          assert.ok(!!~names.indexOf('comment_patches'))
+          assert(!!~names.indexOf('comment_patches'))
         })
       ).then(() => done()).catch(done)
     })
 
     it('uses `transform` option when set', (done) => {
       join(
-        () => assert.ok(!!~mongoose.modelNames().indexOf('postpatches')),
+        () => assert(!!~mongoose.modelNames().indexOf('postpatches')),
         getCollectionNames().then((names) => {
-          assert.ok(!!~names.indexOf('post_history'))
+          assert(!!~names.indexOf('post_history'))
         })
       ).then(() => done()).catch(done)
     })
