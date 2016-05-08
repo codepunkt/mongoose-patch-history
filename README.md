@@ -168,7 +168,10 @@ PostSchema.plugin(patchHistory, {
 })
 
 // create post, pass in user information
-Post.create({ title: 'Why is hiring broken?', user: mongoose.Types.ObjectId() })
+Post.create({
+  title: 'Why is hiring broken?',
+  user: mongoose.Types.ObjectId()
+})
   .then((post) => {
     console.log(post.user) // undefined
     return post.patches.findOne({ ref: post.id })
@@ -182,9 +185,14 @@ In case of a rollback in this scenario, the `rollback` method accepts an object 
 
 ```javascript
 Post.create({ title: 'v1', user: mongoose.Types.ObjectId() })
-  .then((post) => post.set({ title: 'v2', user: mongoose.Types.ObjectId() }).save())
+  .then((post) => post.set({
+    title: 'v2',
+    user: mongoose.Types.ObjectId()
+  }).save())
   .then((post) => {
     return post.patches.find({ ref: post.id })
-      .then((patches) => post.rollback(patches[0].id, user: mongoose.Types.ObjectId()))
+      .then((patches) => post.rollback(patches[0].id, {
+        user: mongoose.Types.ObjectId()
+      }))
   })
 ```
