@@ -47,6 +47,11 @@ export default function (schema, opts) {
       versionKey: false,
       transform: (doc, ret, options) => {
         delete ret._id
+        // if timestamps option is set on schema, ignore timestamp fields
+        if (schema.options.timestamps) {
+          delete ret[schema.options.timestamps.createdAt || 'createdAt']
+          delete ret[schema.options.timestamps.updatedAt || 'updatedAt']
+        }
       }
     })
   }

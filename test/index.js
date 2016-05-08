@@ -26,7 +26,7 @@ CommentSchema.plugin(patchHistory, {
   }
 })
 
-const PostSchema = new Schema({ title: String })
+const PostSchema = new Schema({ title: String }, { timestamps: true })
 PostSchema.plugin(patchHistory, { mongoose,
   name: 'postPatches',
   transforms: [
