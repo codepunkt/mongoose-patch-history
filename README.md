@@ -16,7 +16,8 @@ import mongoose, { Schema } from 'mongoose'
 import patchHistory from 'mongoose-patch-history'
 
 const PostSchema = new Schema({
-  title: { type: String, required: true }
+  title: { type: String, required: true },
+  comments: []
 })
 
 PostSchema.plugin(patchHistory, { mongoose, name: 'postPatches' })
@@ -30,10 +31,9 @@ __mongoose-patch-history__ will define a schema that has a `ref` field containin
 Continuing the previous example, a new patch is added to the associated patch collection whenever a new post is added to the posts collection:
 
 ```javascript
-const post = await Post.create({ title: 'JSON patches' })
-const patch = await post.patches.findOne({ ref: post.id })
-
-console.log(patch)
+Post.create({ title: 'JSON patches' })
+  .then((post) => post.patches.findOne({ ref: post.id }))
+  .then(console.log)
 
 // {
 //   _id: ObjectId('4edd40c86762e0fb12000003'),
@@ -57,10 +57,10 @@ const data = {
   comments: [{ message: 'Wow! Such Mongoose! Very NoSQL!' }]
 }
 
-await post.set(data).save()
-const patches = await Post.Patches.find({ ref: post.id })
-
-console.log(patches)
+Post.create({ title: 'JSON patches' })
+  .then((post) => post.set(data).save())
+  .then((post) => post.patches.find({ ref: post.id }))
+  .then(console.log)
 
 // [{
 //   _id: ObjectId('4edd40c86762e0fb12000003'),
@@ -82,6 +82,31 @@ console.log(patches)
 //   "__v": 0
 // }]
 ```
+
+### Rollback to a specific patch
+
+Documents have a `rollback` method that accepts the *ObjectId* of a patch doc and sets the document to the state of that patch, adding a new patch to the history.
+
+```javascript
+Post.create({ title: 'First version' })
+  .then((post) => post.set({ title: 'Second version' }).save())
+  .then((post) => post.set({ title: 'Third version' }).save())
+  .then((post) => {
+    return post.patches.find({ ref: post.id })
+      .then((patches) => post.rollback(patches[1].id))
+  })
+  .then(console.log)
+
+// {
+//   _id: ObjectId('4edd40c86762e0fb12000006'),
+//   title: 'Second version,
+//   __v: 0
+// }
+```
+
+The `rollback` method will throw an Error when invoked with an ObjectId that is
+- not a patch of the document
+- the latest patch of the document
 
 ## Options
 ```javascript
@@ -115,10 +140,11 @@ PostSchema.plugin(patchHistory, {
 This will add a `title` property to the patch schema. All options that are available in mongoose's schema property definitions such as `required`, `default` or `index` can be used.
 
 ```javascript
-const post = await Post.create({ title: 'Included in every patch' })
-const patch = await post.patches.findOne({ ref: post.id })
-
-console.log(patch.title) // 'Included in every patch'
+Post.create({ title: 'Included in every patch' })
+  .then((post) => post.patches.findOne({ ref: post.id })
+  .then((patch) => {
+    console.log(patch.title) // 'Included in every patch'
+  })
 ```
 
 The value of the patch documents properties is read from the versioned documents property of the same name.
@@ -142,16 +168,23 @@ PostSchema.plugin(patchHistory, {
 })
 
 // create post, pass in user information
-const post = await Post.create({
-  title: 'Why is hiring broken?',
-  user: new mongoose.Types.ObjectId()
-})
+Post.create({ title: 'Why is hiring broken?', user: mongoose.Types.ObjectId() })
+  .then((post) => {
+    console.log(post.user) // undefined
+    return post.patches.findOne({ ref: post.id })
+  })
+  .then((patch) => {
+    console.log(patch.user) // 4edd40c86762e0fb12000012
+  })
+```
 
-console.log(post.user) // undefined
+In case of a rollback in this scenario, the `rollback` method accepts an object as its second parameter where additional data can be injected:
 
-const patch = await post.patches.findOne({
-  ref: post.id
-})
-
-console.log(patch.user) // 4edd40c86762e0fb12000012
+```javascript
+Post.create({ title: 'v1', user: mongoose.Types.ObjectId() })
+  .then((post) => post.set({ title: 'v2', user: mongoose.Types.ObjectId() }).save())
+  .then((post) => {
+    return post.patches.find({ ref: post.id })
+      .then((patches) => post.rollback(patches[0].id, user: mongoose.Types.ObjectId()))
+  })
 ```

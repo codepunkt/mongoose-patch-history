@@ -45,43 +45,38 @@ export default function (schema, opts) {
     return this.toObject({
       depopulate: true,
       versionKey: false,
-      // TODO don't filter out createdAt and updatedAt only, but create
-      // a blacklist of properties that should be ignored while comparing
       transform: (doc, ret, options) => {
         delete ret._id
-        delete ret.createdAt
-        delete ret.updatedAt
       }
     })
   }
 
-  // TODO comment this
-  schema.methods.rollback = function (patchId) {
+  // roll the document back to the state of a given patch id
+  schema.methods.rollback = function (patchId, data) {
     return this.patches.find({ ref: this.id }).sort({ date: 1 }).exec()
       .then((patches) => new Promise((resolve, reject) => {
-        // if patch doesn't exist, resolve with undefined
+        // patch doesn't exist
         if (!~map(patches, 'id').indexOf(patchId)) {
-          return resolve()
+          return reject(new Error('patch doesn\'t exist'))
         }
 
         // get all patches that should be applied
         const apply = dropRightWhile(patches, (patch) => patch.id !== patchId)
 
-        // if the applied patches equal all patches, a rollback to the current
-        // state is attempted. in this case, resolve with undefined
+        // if the patches that are going to be applied are all existing patches,
+        // the rollback attempts to rollback to the latest patch
         if (patches.length === apply.length) {
-          return resolve()
+          return reject(new Error('rollback to latest patch'))
         }
 
-        // apply patches to `data`
-        // TODO user
-        const data = { user: apply[apply.length - 1].user }
+        // apply patches to `state`
+        const state = {}
         apply.forEach((patch) => {
-          jsonpatch.apply(data, patch.ops, true)
+          jsonpatch.apply(state, patch.ops, true)
         })
 
-        // save new `data` and resolve with the resulting document
-        this.set(data).save().then(resolve).catch(reject)
+        // save new state and resolve with the resulting document
+        this.set(merge(data, state)).save().then(resolve).catch(reject)
       }))
   }
 
