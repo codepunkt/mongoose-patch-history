@@ -99,7 +99,7 @@ Post.create({ title: 'First version' })
 
 // {
 //   _id: ObjectId('4edd40c86762e0fb12000006'),
-//   title: 'Second version,
+//   title: 'Second version',
 //   __v: 0
 // }
 ```
