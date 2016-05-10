@@ -27,7 +27,7 @@
   "scripts": {
     "addCompile": "git add lib/",
     "coverage": "istanbul cover _mocha -- --compilers js:babel-register",
-    "compile": "babel -d lib/ src/",
+    "compile": "rm -rf lib/ && babel -d lib/ src/",
     "lint": "eslint {src,test}/**",
     "prepublish": "npm run compile",
     "test": "npm run lint && mocha --compilers js:babel-register"
