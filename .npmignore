@@ -1,3 +1,5 @@
 coverage
 src
 test
+.coveralls.yml
+.travis.yml
