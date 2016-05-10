@@ -17,7 +17,7 @@ import patchHistory from 'mongoose-patch-history'
 
 const PostSchema = new Schema({
   title: { type: String, required: true },
-  comments: []
+  comments: Array
 })
 
 PostSchema.plugin(patchHistory, { mongoose, name: 'postPatches' })
