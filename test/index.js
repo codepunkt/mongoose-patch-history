@@ -2,7 +2,7 @@ import assert from 'assert'
 import { map } from 'lodash'
 import Promise, { join } from 'bluebird'
 import mongoose, { Schema } from 'mongoose'
-import patchHistory from '../src'
+import patchHistory, { RollbackError } from '../src'
 
 const ObjectId = mongoose.Types.ObjectId
 
@@ -159,7 +159,7 @@ describe('mongoose-patch-history', () => {
         .then((post) => {
           return post.rollback(ObjectId())
             .then(() => { assert(false); done() })
-            .catch((err) => { assert(err instanceof Error); done() })
+            .catch((err) => { assert(err instanceof RollbackError); done() })
         })
     })
 
@@ -169,7 +169,7 @@ describe('mongoose-patch-history', () => {
         .then(([post, latestPatch]) => {
           return post.rollback(latestPatch.id)
             .then(() => { assert(false); done() })
-            .catch((err) => { assert(err instanceof Error); done() })
+            .catch((err) => { assert(err instanceof RollbackError); done() })
         })
     })
 
