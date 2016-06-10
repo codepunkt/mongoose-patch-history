@@ -6,6 +6,7 @@
   "author": "Christoph Werner <christoph@codepunkt.de>",
   "license": "MIT",
   "dependencies": {
+    "babel-plugin-transform-builtin-extend": "^1.1.0",
     "fast-json-patch": "^0.5.7",
     "humps": "^1.1.0",
     "lodash": "^4.11.1",

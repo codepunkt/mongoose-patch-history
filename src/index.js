@@ -5,6 +5,15 @@ import jsonpatch from 'fast-json-patch'
 import { decamelize, pascalize } from 'humps'
 import { dropRightWhile, each, map, merge, omit } from 'lodash'
 
+export class PatchError extends Error {
+  constructor (message) {
+    super()
+    Error.captureStackTrace(this, this.constructor)
+    this.name = this.constructor.name
+    this.message = message
+  }
+}
+
 const createPatchModel = (options) => {
   const def = {
     date: { type: Date, required: true, default: Date.now },
@@ -62,7 +71,7 @@ export default function (schema, opts) {
       .then((patches) => new Promise((resolve, reject) => {
         // patch doesn't exist
         if (!~map(patches, 'id').indexOf(patchId)) {
-          return reject(new Error('patch doesn\'t exist'))
+          return reject(new PatchError('patch doesn\'t exist'))
         }
 
         // get all patches that should be applied
@@ -71,7 +80,7 @@ export default function (schema, opts) {
         // if the patches that are going to be applied are all existing patches,
         // the rollback attempts to rollback to the latest patch
         if (patches.length === apply.length) {
-          return reject(new Error('rollback to latest patch'))
+          return reject(new PatchError('rollback to latest patch'))
         }
 
         // apply patches to `state`
