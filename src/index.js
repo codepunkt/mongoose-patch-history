@@ -5,14 +5,13 @@ import jsonpatch from 'fast-json-patch'
 import { decamelize, pascalize } from 'humps'
 import { dropRightWhile, each, map, merge, omit } from 'lodash'
 
-export class RollbackError extends Error {
-  constructor (message) {
-    super()
-    Error.captureStackTrace(this, this.constructor)
-    this.name = this.constructor.name
-    this.message = message
-  }
+export const RollbackError = function (message, extra) {
+  Error.captureStackTrace(this, this.constructor)
+  this.name = 'RollbackError'
+  this.message = message
 }
+
+require('util').inherits(RollbackError, Error)
 
 const createPatchModel = (options) => {
   const def = {
