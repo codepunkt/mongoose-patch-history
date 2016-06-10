@@ -158,7 +158,7 @@ describe('mongoose-patch-history', () => {
       Post.create({ title: 'version 1' })
         .then((post) => {
           return post.rollback(ObjectId())
-            .then(() => { assert(false); done() })
+            .then(() => { done() })
             .catch((err) => { assert(err instanceof RollbackError); done() })
         })
     })
@@ -168,7 +168,7 @@ describe('mongoose-patch-history', () => {
         .then((post) => join(post, post.patches.findOne({ ref: post.id })))
         .then(([post, latestPatch]) => {
           return post.rollback(latestPatch.id)
-            .then(() => { assert(false); done() })
+            .then(() => { done() })
             .catch((err) => { assert(err instanceof RollbackError); done() })
         })
     })
