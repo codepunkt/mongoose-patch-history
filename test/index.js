@@ -4,6 +4,7 @@ import Promise, { join } from 'bluebird'
 import mongoose, { Schema } from 'mongoose'
 import patchHistory, { RollbackError } from '../src'
 
+mongoose.Promise = Promise
 const ObjectId = mongoose.Types.ObjectId
 
 const CommentSchema = new Schema({ text: String })
@@ -93,9 +94,10 @@ describe('mongoose-patch-history', () => {
           .then((post) => post.patches.find({ ref: post.id }))
           .then((patches) => {
             assert.equal(patches.length, 1)
-            assert.deepEqual(patches[0].ops, [
-              { value: 'foo', path: '/title', op: 'add' }
-            ])
+            assert.equal(
+              JSON.stringify(patches[0].ops),
+              JSON.stringify([{ value: 'foo', path: '/title', op: 'add' }])
+            )
           }),
         // with referenced user
         User.findOne()
@@ -103,9 +105,10 @@ describe('mongoose-patch-history', () => {
           .then((comment) => comment.patches.find({ ref: comment.id }))
           .then((patches) => {
             assert.equal(patches.length, 1)
-            assert.deepEqual(patches[0].ops, [
-              { value: 'wat', path: '/text', op: 'add' }
-            ])
+            assert.equal(
+              JSON.stringify(patches[0].ops),
+              JSON.stringify([{ value: 'wat', path: '/text', op: 'add' }])
+            )
           })
       ).then(() => done()).catch(done)
     })
@@ -118,9 +121,10 @@ describe('mongoose-patch-history', () => {
         .then((post) => post.patches.find({ ref: post.id }).sort({ _id: 1 }))
         .then((patches) => {
           assert.equal(patches.length, 2)
-          assert.deepEqual(patches[1].ops, [
-            { value: 'bar', path: '/title', op: 'replace' }
-          ])
+          assert.equal(
+            JSON.stringify(patches[1].ops),
+            JSON.stringify([{ value: 'bar', path: '/title', op: 'replace' }])
+          )
         }).then(done).catch(done)
     })
 
