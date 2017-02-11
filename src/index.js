@@ -39,6 +39,11 @@ const defaultOptions = {
   transforms: [ pascalize, decamelize ]
 }
 
+// used to convert bson to json - especially ObjectID references need
+// to be converted to hex strings so that the jsonpatch `compare` method
+// works correctly
+const toJSON = (obj) => JSON.parse(JSON.stringify(obj))
+
 export default function (schema, opts) {
   const options = merge({}, defaultOptions, opts)
 
@@ -102,7 +107,7 @@ export default function (schema, opts) {
   // after a document is initialized or saved, fresh snapshots of the
   // documents data are created
   const snapshot = function () {
-    this._original = this.data()
+    this._original = toJSON(this.data())
   }
   schema.post('init', snapshot)
   schema.post('save', snapshot)
@@ -126,7 +131,7 @@ export default function (schema, opts) {
   // added to the associated patch collection
   schema.pre('save', function (next) {
     const { _id: ref } = this
-    const ops = jsonpatch.compare(this.isNew ? {} : this._original, this.data())
+    const ops = jsonpatch.compare(this.isNew ? {} : this._original, toJSON(this.data()))
 
     // don't save a patch when there are no changes to save
     if (!ops.length) {

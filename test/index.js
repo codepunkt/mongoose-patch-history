@@ -223,4 +223,45 @@ describe('mongoose-patch-history', () => {
       ).then(() => done()).catch(done)
     })
   })
+
+  describe('jsonpatch.compare', () => {
+    let Organization
+    let Person
+
+    before(() => {
+      Organization = mongoose.model('Organization', new mongoose.Schema({
+        name: String
+      }))
+
+      const PersonSchema = new mongoose.Schema({
+        name: String,
+        organization: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Organization'
+        }
+      })
+
+      PersonSchema.plugin(patchHistory, { mongoose, name: 'roomPatches' })
+      Person = mongoose.model('Person', PersonSchema)
+    })
+
+    it('is able to handle ObjectId references correctly', (done) => {
+      Organization.create({ text: 'Home' })
+        .then((o1) => join(o1, Organization.create({ text: 'Work' })))
+        .then(([ o1, o2 ]) => join(o1, o2, Person.create({ name: 'Bob', organization: o1._id })))
+        .then(([ o1, o2, p ]) => join(o1, o2, p.set({ organization: o2._id }).save()))
+        .then(([ o1, o2, p ]) => join(o1, o2, p.patches.find({ ref: p.id })))
+        .then(([ o1, o2, patches ]) => {
+          const pathFilter = (path) => (elem) => elem.path === path
+          const firstOrganizationOperation = patches[0].ops.find(pathFilter('/organization'))
+          const secondOrganizationOperation = patches[1].ops.find(pathFilter('/organization'))
+          assert.equal(patches.length, 2)
+          assert(firstOrganizationOperation)
+          assert(secondOrganizationOperation)
+          assert.equal(firstOrganizationOperation.value, o1._id.toString())
+          assert.equal(secondOrganizationOperation.value, o2._id.toString())
+        })
+        .then(done).catch(done)
+    })
+  })
 })
