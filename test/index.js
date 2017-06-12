@@ -1,5 +1,5 @@
 import assert from 'assert'
-import { map } from 'lodash'
+import { map, random } from 'lodash'
 import Promise, { join } from 'bluebird'
 import mongoose, { Schema } from 'mongoose'
 import patchHistory, { RollbackError } from '../src'
@@ -36,12 +36,20 @@ PostSchema.plugin(patchHistory, { mongoose,
   ]
 })
 
+const FruitSchema = new Schema({ _id: { type: String, default: random(100).toString() }, name: { type: String } })
+FruitSchema.plugin(patchHistory, { mongoose, name: 'fruitPatches' })
+
+const SportSchema = new Schema({ _id: { type: Number, default: random(100) }, name: { type: String } })
+SportSchema.plugin(patchHistory, { mongoose, name: 'sportPatches' })
+
 describe('mongoose-patch-history', () => {
-  let Comment, Post, User
+  let Comment, Post, Fruit, Sport, User
 
   before((done) => {
     Comment = mongoose.model('Comment', CommentSchema)
     Post = mongoose.model('Post', PostSchema)
+    Fruit = mongoose.model('Fruit', FruitSchema)
+    Sport = mongoose.model('Sport', SportSchema)
     User = mongoose.model('User', new Schema())
 
     mongoose.connect('mongodb://localhost/mongoose-patch-history', () => {
@@ -135,6 +143,31 @@ describe('mongoose-patch-history', () => {
         .then((patches) => {
           assert.equal(patches.length, 1)
         }).then(done).catch(done)
+    })
+  })
+
+  describe('saving a document with custom _id type', () => {
+    it('supports String _id types', (done) => {
+      Fruit.create({ name: 'apple' })
+        .then((fruit) => fruit.patches.find({ ref: fruit._id }))
+        .then((patches) => {
+          assert.equal(patches.length, 1)
+          assert.equal(
+            JSON.stringify(patches[0].ops),
+            JSON.stringify([{ value: 'apple', path: '/name', op: 'add' }])
+          )
+        }).then(() => done()).catch(done)
+    })
+    it('supports Number _id types', (done) => {
+      Sport.create({ name: 'golf' })
+        .then((sport) => sport.patches.find({ ref: sport._id }))
+        .then((patches) => {
+          assert.equal(patches.length, 1)
+          assert.equal(
+            JSON.stringify(patches[0].ops),
+            JSON.stringify([{ value: 'golf', path: '/name', op: 'add' }])
+          )
+        }).then(() => done()).catch(done)
     })
   })
 
