@@ -17,7 +17,7 @@ const createPatchModel = (options) => {
   const def = {
     date: { type: Date, required: true, default: Date.now },
     ops: { type: [], required: true },
-    ref: { type: Schema.Types.ObjectId, required: true, index: true }
+    ref: { type: options._idType, required: true, index: true }
   }
 
   each(options.includes, (type, name) => {
@@ -47,10 +47,14 @@ const toJSON = (obj) => JSON.parse(JSON.stringify(obj))
 export default function (schema, opts) {
   const options = merge({}, defaultOptions, opts)
 
+  // get _id type from schema
+  options._idType = schema.tree._id.type
+
   // validate parameters
   assert(options.mongoose, '`mongoose` option must be defined')
   assert(options.name, '`name` option must be defined')
   assert(!schema.methods.data, 'conflicting instance method: `data`')
+  assert(options._idType, 'schema is missing an `_id` property')
 
   // used to compare instance data snapshots. depopulates instance,
   // removes version key and object id
