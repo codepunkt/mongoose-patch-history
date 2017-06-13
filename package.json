@@ -18,17 +18,19 @@
         "coveralls": "^2.11.15",
         "istanbul": "^0.4.5",
         "mocha": "^3.2.0",
-        "pre-commit": "^1.2.2"
+        "pre-commit": "^1.2.2",
+        "prettier": "^1.4.4"
     },
     "scripts": {
         "addCompile": "git add lib/",
         "coverage": "istanbul cover _mocha -- --compilers js:babel-register",
         "compile": "rm -rf lib/ && babel -d lib/ src/",
         "prepublish": "npm run compile",
+        "prettier": "prettier --no-semi --single-quote --trailing-comma es5 --write src/**/*.js",
         "test": "mocha --compilers js:babel-register"
     },
     "pre-commit": {
-        "run": "test, compile, addCompile",
+        "run": "prettier, test, compile, addCompile",
         "silent": true
     },
     "repository": {
