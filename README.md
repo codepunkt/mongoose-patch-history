@@ -1,6 +1,6 @@
 # Mongoose Patch History
 
-[![npm version](https://badge.fury.io/js/mongoose-patch-history.svg)](https://badge.fury.io/js/mongoose-patch-history) [![Build Status](https://travis-ci.org/gonsfx/mongoose-patch-history.svg?branch=master)](https://travis-ci.org/gonsfx/mongoose-patch-history) [![Coverage Status](https://coveralls.io/repos/github/gonsfx/mongoose-patch-history/badge.svg?branch=master)](https://coveralls.io/github/gonsfx/mongoose-patch-history?branch=master) [![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg)](http://standardjs.com/)
+[![npm version](https://badge.fury.io/js/mongoose-patch-history.svg)](https://badge.fury.io/js/mongoose-patch-history) [![Build Status](https://travis-ci.org/gonsfx/mongoose-patch-history.svg?branch=master)](https://travis-ci.org/gonsfx/mongoose-patch-history) [![Coverage Status](https://coveralls.io/repos/github/gonsfx/mongoose-patch-history/badge.svg?branch=master)](https://coveralls.io/github/gonsfx/mongoose-patch-history?branch=master)
 
 Mongoose Patch History is a mongoose plugin that saves a history of [JSON Patch](http://jsonpatch.com/) operations for all documents belonging to a schema in an associated "patches" collection.
 
