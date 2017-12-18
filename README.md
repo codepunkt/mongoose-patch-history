@@ -1,5 +1,7 @@
 # Mongoose Patch History
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/codepunkt/mongoose-patch-history.svg)](https://greenkeeper.io/)
+
 [![npm version](https://badge.fury.io/js/mongoose-patch-history.svg)](https://badge.fury.io/js/mongoose-patch-history) [![Build Status](https://travis-ci.org/codepunkt/mongoose-patch-history.svg?branch=master)](https://travis-ci.org/codepunkt/mongoose-patch-history) [![Coverage Status](https://coveralls.io/repos/github/codepunkt/mongoose-patch-history/badge.svg?branch=master)](https://coveralls.io/github/codepunkt/mongoose-patch-history?branch=master)
 
 Mongoose Patch History is a mongoose plugin that saves a history of [JSON Patch](http://jsonpatch.com/) operations for all documents belonging to a schema in an associated "patches" collection.
