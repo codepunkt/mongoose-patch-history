@@ -149,7 +149,7 @@ Post.create({ title: 'Included in every patch' })
 
 The value of the patch documents properties is read from the versioned documents property of the same name.
 
-##### Reading from virtuals
+#### Reading from virtuals
 There is an additional option that allows storing information in the patch documents that is not stored in the versioned documents. To do so, you can use a combination of [virtual type setters](http://mongoosejs.com/docs/guide.html#virtuals) on the versioned document and an additional `from` property in the include options of __mongoose-patch-history__:
 
 ```javascript
@@ -195,4 +195,13 @@ Post.create({ title: 'v1', user: mongoose.Types.ObjectId() })
         user: mongoose.Types.ObjectId()
       }))
   })
+```
+
+#### Reading from query options
+In situations where you are running Mongoose queries directly instead of via a document, you can specify the extra fields in the query options.
+
+Example:
+
+```javascript
+Post.findOneAndUpdate({ _id: '4edd40c86762e0fb12000012' }, { title: 'Why is hiring broken? (updated)' }, { _user: mongoose.Types.ObjectId() })
 ```

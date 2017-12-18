@@ -28,12 +28,25 @@ CommentSchema.plugin(patchHistory, {
 })
 
 const PostSchema = new Schema({ title: String }, { timestamps: true })
-PostSchema.plugin(patchHistory, { mongoose,
+PostSchema.plugin(patchHistory, {
+  mongoose,
   name: 'postPatches',
   transforms: [
     (name) => name.toLowerCase(),
     () => 'post_history'
-  ]
+  ],
+  includes: {
+    version: { type: Number, from: '__v' },
+    reason: { type: String, from: '__reason' },
+    user: { type: Object, from: '__user' }
+  }
+})
+
+PostSchema.virtual('user').set(function (user) {
+  this.__user = user
+})
+PostSchema.virtual('reason').set(function (reason) {
+  this.__reason = reason
 })
 
 const FruitSchema = new Schema({ _id: { type: String, default: random(100).toString() }, name: { type: String } })
@@ -52,7 +65,7 @@ describe('mongoose-patch-history', () => {
     Sport = mongoose.model('Sport', SportSchema)
     User = mongoose.model('User', new Schema())
 
-    mongoose.connect('mongodb://localhost/mongoose-patch-history', () => {
+    mongoose.connect('mongodb://localhost/mongoose-patch-history', { useMongoClient: true }, () => {
       join(
         Comment.remove(),
         Comment.Patches.remove(),
@@ -125,7 +138,14 @@ describe('mongoose-patch-history', () => {
   describe('saving an existing document', () => {
     it('with changes: adds a patch', (done) => {
       Post.findOne({ title: 'foo' })
-        .then((post) => post.set({ title: 'bar' }).save())
+        .then((post) => {
+          post.set({
+            title: 'bar',
+            reason: 'test reason',
+            user: { name: 'Joe' }
+          })
+          return post.save()
+        })
         .then((post) => post.patches.find({ ref: post.id }).sort({ _id: 1 }))
         .then((patches) => {
           assert.equal(patches.length, 2)
@@ -133,6 +153,8 @@ describe('mongoose-patch-history', () => {
             JSON.stringify(patches[1].ops),
             JSON.stringify([{ value: 'bar', path: '/title', op: 'replace' }])
           )
+          assert.equal(patches[1].reason, 'test reason')
+          assert.equal(patches[1].user.name, 'Joe')
         }).then(done).catch(done)
     })
 
@@ -171,6 +193,105 @@ describe('mongoose-patch-history', () => {
     })
   })
 
+  describe('updating a document via findOneAndUpdate()', () => {
+    it('with changes: adds a patch', (done) => {
+      Post.create({ title: 'findOneAndUpdate1' })
+        .then((post) => Post.findOneAndUpdate({ _id: post._id }, { title: 'findOneAndUpdate2', __v: 1 }, { __reason: 'test reason', __user: { name: 'Joe' }}))
+        .then((post) => post.patches.find({ ref: post._id }).sort({ _id: 1 }))
+        .then((patches) => {
+          assert.equal(patches.length, 2)
+          assert.equal(
+            JSON.stringify(patches[1].ops),
+            JSON.stringify([{ value: 'findOneAndUpdate2', path: '/title', op: 'replace' }])
+          )
+          assert.equal(patches[1].reason, 'test reason')
+          assert.equal(patches[1].user.name, 'Joe')
+        }).then(done).catch(done)
+    })
+
+    it('without changes: doesn`t add a patch', (done) => {
+      Post.findOneAndUpdate({ title: 'baz' }, {})
+        .then((post) => post.patches.find({ ref: post.id }))
+        .then((patches) => {
+          assert.equal(patches.length, 1)
+        }).then(done).catch(done)
+    })
+  })
+
+  describe('updating a document via updateOne()', () => {
+    it('with changes: adds a patch', (done) => {
+      Post.create({ title: 'updateOne1' })
+        .then((post) => Post.updateOne({ _id: post._id }, { title: 'updateOne2' }))
+        .then(() => Post.findOne({ title: 'updateOne2' }))
+        .then((post) => post.patches.find({ ref: post._id }).sort({ _id: 1 }))
+        .then((patches) => {
+          assert.equal(patches.length, 2)
+          assert.equal(
+            JSON.stringify(patches[1].ops),
+            JSON.stringify([{ value: 'updateOne2', path: '/title', op: 'replace' }])
+          )
+        }).then(done).catch(done)
+    })
+
+    it('without changes: doesn`t add a patch', (done) => {
+      Post.updateOne({ title: 'baz' }, {})
+        .then(() => Post.findOne({ title: 'baz' }))
+        .then((post) => post.patches.find({ ref: post.id }))
+        .then((patches) => {
+          assert.equal(patches.length, 1)
+        }).then(done).catch(done)
+    })
+  })
+
+  describe('updating a document via updateMany()', () => {
+    it('with changes: adds a patch', (done) => {
+      Post.create({ title: 'updateMany1' })
+        .then((post) => Post.updateMany({ _id: post._id }, { title: 'updateMany2' }))
+        .then(() => Post.find({ title: 'updateMany2' }))
+        .then((posts) => posts[0].patches.find({ ref: posts[0]._id }).sort({ _id: 1 }))
+        .then((patches) => {
+          assert.equal(patches.length, 2)
+          assert.equal(
+            JSON.stringify(patches[1].ops),
+            JSON.stringify([{ value: 'updateMany2', path: '/title', op: 'replace' }])
+          )
+        }).then(done).catch(done)
+    })
+
+    it('without changes: doesn`t add a patch', (done) => {
+      Post.updateMany({ title: 'baz' }, {})
+        .then(() => Post.find({ title: 'baz' }))
+        .then((posts) => posts[0].patches.find({ ref: posts[0].id }))
+        .then((patches) => {
+          assert.equal(patches.length, 1)
+        }).then(done).catch(done)
+    })
+  })
+
+  describe('upserting a document', () => {
+    it('with changes: adds a patch', (done) => {
+      Post.update({ title: 'upsert0' }, { title: 'upsert1' }, { upsert: true, multi: true })
+        .then(() => Post.find({ title: 'upsert1' }))
+        .then((posts) => posts[0].patches.find({ ref: posts[0]._id }).sort({ _id: 1 }))
+        .then((patches) => {
+          assert.equal(patches.length, 1)
+          assert.equal(
+            JSON.stringify(patches[0].ops),
+            JSON.stringify([{ value: 'upsert1', path: '/title', op: 'add' }])
+          )
+        }).then(done).catch(done)
+    })
+
+    it('without changes: adds a patch', (done) => {
+      Post.update({ title: 'upsert1' }, { title: 'upsert1' }, { upsert: true, multi: true })
+        .then(() => Post.find({ title: 'upsert1' }))
+        .then((posts) => posts[0].patches.find({ ref: posts[0].id }))
+        .then((patches) => {
+          assert.equal(patches.length, 2)
+        }).then(done).catch(done)
+    })
+  })
+
   describe('removing a document', () => {
     it('removes all patches', (done) => {
       Post.findOne({ title: 'bar' })
@@ -189,7 +310,6 @@ describe('mongoose-patch-history', () => {
         }).then(done).catch(done)
     })
   })
-
   describe('rollback', () => {
     it('with unknown id is rejected', (done) => {
       Post.create({ title: 'version 1' })
@@ -227,7 +347,7 @@ describe('mongoose-patch-history', () => {
         .then(done).catch(done)
     })
   })
-
+  
   describe('model and collection names', () => {
     const getCollectionNames = () => {
       return new Promise((resolve, reject) => {
