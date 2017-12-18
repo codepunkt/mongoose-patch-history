@@ -203,5 +203,9 @@ In situations where you are running Mongoose queries directly instead of via a d
 Example:
 
 ```javascript
-Post.findOneAndUpdate({ _id: '4edd40c86762e0fb12000012' }, { title: 'Why is hiring broken? (updated)' }, { _user: mongoose.Types.ObjectId() })
+Post.findOneAndUpdate(
+  { _id: '4edd40c86762e0fb12000012' },
+  { title: 'Why is hiring broken? (updated)' },
+  { _user: mongoose.Types.ObjectId() }
+)
 ```
