@@ -198,9 +198,7 @@ Post.create({ title: 'v1', user: mongoose.Types.ObjectId() })
 ```
 
 #### Reading from query options
-In situations where you are running Mongoose queries directly instead of via a document, you can specify the extra fields in the query options.
-
-Example:
+In situations where you are running Mongoose queries directly instead of via a document, you can specify the extra fields in the query options:
 
 ```javascript
 Post.findOneAndUpdate(
