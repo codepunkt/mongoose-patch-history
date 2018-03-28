@@ -347,7 +347,7 @@ describe('mongoose-patch-history', () => {
         .then(done).catch(done)
     })
   })
-  
+
   describe('model and collection names', () => {
     const getCollectionNames = () => {
       return new Promise((resolve, reject) => {
@@ -413,6 +413,41 @@ describe('mongoose-patch-history', () => {
           assert(secondOrganizationOperation)
           assert.equal(firstOrganizationOperation.value, o1._id.toString())
           assert.equal(secondOrganizationOperation.value, o2._id.toString())
+        })
+        .then(done).catch(done)
+    })
+  })
+
+  describe('track original values', () => {
+    let Company
+
+    before(() => {
+      const CompanySchema = new mongoose.Schema({
+        name: String
+      })
+
+      CompanySchema.plugin(patchHistory, { mongoose, name: 'companyPatches', trackOriginalValue: true })
+      Company = mongoose.model('Company', CompanySchema)
+    })
+
+    after((done) => {
+      join(
+        Company.remove(),
+        Company.Patches.remove()
+      ).then(() => done())
+    })
+
+    it('stores the original value in the ops entries', (done) => {
+      Company.create({ text: 'Private' })
+        .then((c) => c.set({ name: 'Private 2' }).save())
+        .then((c) => c.set({ name: 'Private 3' }).save())
+        .then((c) => c.patches.find())
+        .then((patches) => {
+          assert.equal(patches.length, 2)
+          assert.equal(
+            JSON.stringify(patches[1].ops),
+            JSON.stringify([{ originalValue: 'Private 2', value: 'Private 3', path: '/name', op: 'replace' }])
+          )
         })
         .then(done).catch(done)
     })
