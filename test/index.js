@@ -309,6 +309,14 @@ describe('mongoose-patch-history', () => {
           assert.equal(patches.length, 1)
         }).then(done).catch(done)
     })
+    it('removes all patches via findOneAndRemove()', done => {
+      Post.create({ title: 'findOneAndRemove1' })
+        .then(post => Post.findOneAndRemove({ _id: post.id }))
+        .then(post => post.patches.find({ ref: post.id }))
+        .then(patches => {
+          assert.equal(patches.length, 0)
+        }).then(done).catch(done)
+    })
   })
   describe('rollback', () => {
     it('with unknown id is rejected', (done) => {
