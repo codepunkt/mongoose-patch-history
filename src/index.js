@@ -193,7 +193,9 @@ export default function(schema, opts) {
       return next()
     }
 
-    deletePatches(this)
+    this.model
+      .findOne(this._conditions)
+      .then(original => deletePatches(original))
       .then(() => next())
       .catch(next)
   })
