@@ -65,7 +65,7 @@ describe('mongoose-patch-history', () => {
     Sport = mongoose.model('Sport', SportSchema)
     User = mongoose.model('User', new Schema())
 
-    mongoose.connect('mongodb://localhost/mongoose-patch-history', { useMongoClient: true }, () => {
+    mongoose.connect('mongodb://localhost/mongoose-patch-history', () => {
       join(
         Comment.remove(),
         Comment.Patches.remove(),
@@ -76,6 +76,8 @@ describe('mongoose-patch-history', () => {
       .then(() => done())
     })
   })
+
+  after(() => mongoose.connection.close())
 
   describe('initialization', () => {
     const name = 'testPatches'
@@ -117,7 +119,7 @@ describe('mongoose-patch-history', () => {
             assert.equal(patches.length, 1)
             assert.equal(
               JSON.stringify(patches[0].ops),
-              JSON.stringify([{ value: 'foo', path: '/title', op: 'add' }])
+              JSON.stringify([{ op: 'add', path: '/title', value: 'foo' }])
             )
           }),
         // with referenced user
@@ -128,7 +130,7 @@ describe('mongoose-patch-history', () => {
             assert.equal(patches.length, 1)
             assert.equal(
               JSON.stringify(patches[0].ops),
-              JSON.stringify([{ value: 'wat', path: '/text', op: 'add' }])
+              JSON.stringify([{ op: 'add', path: '/text', value: 'wat' }])
             )
           })
       ).then(() => done()).catch(done)
@@ -151,7 +153,7 @@ describe('mongoose-patch-history', () => {
           assert.equal(patches.length, 2)
           assert.equal(
             JSON.stringify(patches[1].ops),
-            JSON.stringify([{ value: 'bar', path: '/title', op: 'replace' }])
+            JSON.stringify([{ op: 'replace', path: '/title', value: 'bar' }])
           )
           assert.equal(patches[1].reason, 'test reason')
           assert.equal(patches[1].user.name, 'Joe')
@@ -176,7 +178,7 @@ describe('mongoose-patch-history', () => {
           assert.equal(patches.length, 1)
           assert.equal(
             JSON.stringify(patches[0].ops),
-            JSON.stringify([{ value: 'apple', path: '/name', op: 'add' }])
+            JSON.stringify([{ op: 'add', path: '/name', value: 'apple' }])
           )
         }).then(() => done()).catch(done)
     })
@@ -187,7 +189,7 @@ describe('mongoose-patch-history', () => {
           assert.equal(patches.length, 1)
           assert.equal(
             JSON.stringify(patches[0].ops),
-            JSON.stringify([{ value: 'golf', path: '/name', op: 'add' }])
+            JSON.stringify([{ op: 'add', path: '/name', value: 'golf' }])
           )
         }).then(() => done()).catch(done)
     })
@@ -202,7 +204,7 @@ describe('mongoose-patch-history', () => {
           assert.equal(patches.length, 2)
           assert.equal(
             JSON.stringify(patches[1].ops),
-            JSON.stringify([{ value: 'findOneAndUpdate2', path: '/title', op: 'replace' }])
+            JSON.stringify([{ op: 'replace', path: '/title', value: 'findOneAndUpdate2' }])
           )
           assert.equal(patches[1].reason, 'test reason')
           assert.equal(patches[1].user.name, 'Joe')
@@ -228,7 +230,7 @@ describe('mongoose-patch-history', () => {
           assert.equal(patches.length, 2)
           assert.equal(
             JSON.stringify(patches[1].ops),
-            JSON.stringify([{ value: 'updateOne2', path: '/title', op: 'replace' }])
+            JSON.stringify([{ op: 'replace', path: '/title', value: 'updateOne2' }])
           )
         }).then(done).catch(done)
     })
@@ -253,7 +255,7 @@ describe('mongoose-patch-history', () => {
           assert.equal(patches.length, 2)
           assert.equal(
             JSON.stringify(patches[1].ops),
-            JSON.stringify([{ value: 'updateMany2', path: '/title', op: 'replace' }])
+            JSON.stringify([{ op: 'replace', path: '/title', value: 'updateMany2' }])
           )
         }).then(done).catch(done)
     })
@@ -277,7 +279,7 @@ describe('mongoose-patch-history', () => {
           assert.equal(patches.length, 1)
           assert.equal(
             JSON.stringify(patches[0].ops),
-            JSON.stringify([{ value: 'upsert1', path: '/title', op: 'add' }])
+            JSON.stringify([{ op: 'add', path: '/title', value: 'upsert1' }])
           )
         }).then(done).catch(done)
     })
@@ -454,7 +456,7 @@ describe('mongoose-patch-history', () => {
           assert.equal(patches.length, 2)
           assert.equal(
             JSON.stringify(patches[1].ops),
-            JSON.stringify([{ originalValue: 'Private 2', value: 'Private 3', path: '/name', op: 'replace' }])
+            JSON.stringify([{ op: 'replace', path: '/name', value: 'Private 3', originalValue: 'Private 2' }])
           )
         })
         .then(done).catch(done)
