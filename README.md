@@ -128,6 +128,8 @@ Removes patches when origin document is removed. Default: `true`
 An array of two functions that generate model and collection name based on the `name` option. Default: An array of [humps](https://github.com/domchristie/humps).pascalize and [humps](https://github.com/domchristie/humps).decamelize
 * `includes` <br/>
 Property definitions that will be included in the patch schema. Read more about includes in the next chapter of the documentation. Default: `{}`
+* `trackOriginalValue` <br/>
+  If enabled, the original value will be stored in the change patches under the attribute `originalValue`. Default: `false`
 
 ### Includes
 ```javascript

@@ -3,7 +3,7 @@ import { Schema } from 'mongoose'
 import Promise, { join } from 'bluebird'
 import jsonpatch from 'fast-json-patch'
 import { decamelize, pascalize } from 'humps'
-import { dropRightWhile, each, map, merge, omit } from 'lodash'
+import { dropRightWhile, each, map, merge, omit, get, tail } from 'lodash'
 
 export const RollbackError = function(message, extra) {
   Error.captureStackTrace(this, this.constructor)
@@ -37,6 +37,7 @@ const defaultOptions = {
   includes: {},
   removePatches: true,
   transforms: [pascalize, decamelize],
+  trackOriginalValue: false,
 }
 
 // used to convert bson to json - especially ObjectID references need
@@ -160,6 +161,17 @@ export default function(schema, opts) {
       return Promise.resolve()
     }
 
+    // track original values if enabled
+    if (options.trackOriginalValue) {
+      ops.map(entry => {
+        const path = tail(entry.path.split('/')).join('.')
+        entry.originalValue = get(
+          document.isNew ? {} : document._original,
+          path
+        )
+      })
+    }
+
     // assemble patch data
     const data = { ops, ref }
     each(options.includes, (type, name) => {
@@ -181,7 +193,9 @@ export default function(schema, opts) {
       return next()
     }
 
-    deletePatches(this)
+    this.model
+      .findOne(this._conditions)
+      .then(original => deletePatches(original))
       .then(() => next())
       .catch(next)
   })
