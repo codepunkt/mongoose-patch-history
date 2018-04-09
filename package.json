@@ -9,7 +9,7 @@
         "fast-json-patch": "^2.0.4",
         "humps": "^2.0.1",
         "lodash": "^4.17.5",
-        "mongoose": "^5.0.12"
+        "mongoose": "^5.0.13"
     },
     "devDependencies": {
         "babel-cli": "^6.26.0",
