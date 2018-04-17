@@ -1,4 +1,4 @@
-<img title="redux-active" src="docs/mongoose-patch-history.png" width="602" style="margin-top:20px;">
+<img title="redux-active" src="docs/mongoose-patch-history.png" width="519" style="margin-top:20px;">
 
 [![npm version](https://badge.fury.io/js/mongoose-patch-history.svg)](https://badge.fury.io/js/mongoose-patch-history) [![Build Status](https://travis-ci.org/codepunkt/mongoose-patch-history.svg?branch=master)](https://travis-ci.org/codepunkt/mongoose-patch-history) [![Greenkeeper badge](https://badges.greenkeeper.io/codepunkt/mongoose-patch-history.svg)](https://greenkeeper.io/) [![Coverage Status](https://coveralls.io/repos/github/codepunkt/mongoose-patch-history/badge.svg?branch=master)](https://coveralls.io/github/codepunkt/mongoose-patch-history?branch=master)
 
