@@ -8,7 +8,7 @@
     "dependencies": {
         "fast-json-patch": "^2.0.4",
         "humps": "^2.0.1",
-        "lodash": "^4.17.5",
+        "lodash": "^4.17.10",
         "mongoose": "^5.2.6"
     },
     "devDependencies": {
@@ -16,11 +16,11 @@
         "babel-cli": "^6.26.0",
         "babel-preset-es2015": "^6.22.0",
         "bluebird": "^3.5.1",
-        "coveralls": "^3.0.0",
+        "coveralls": "^3.0.2",
         "istanbul": "^0.4.5",
-        "mocha": "^5.0.5",
+        "mocha": "^5.2.0",
         "pre-commit": "^1.2.2",
-        "prettier": "^1.11.1"
+        "prettier": "^1.14.0"
     },
     "scripts": {
         "addCompile": "git add lib/",
@@ -28,7 +28,7 @@
         "compile": "rm -rf lib/ && babel -d lib/ src/",
         "prepublish": "npm run compile",
         "prettier": "prettier --no-semi --single-quote --trailing-comma es5 --write src/**/*.js",
-        "test": "mocha --compilers js:babel-register"
+        "test": "mocha --require babel-core/register"
     },
     "pre-commit": {
         "run": "prettier, test, compile, addCompile",
