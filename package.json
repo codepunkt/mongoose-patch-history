@@ -9,9 +9,10 @@
         "fast-json-patch": "^2.0.4",
         "humps": "^2.0.1",
         "lodash": "^4.17.5",
-        "mongoose": "^5.0.13"
+        "mongoose": "^5.2.6"
     },
     "devDependencies": {
+        "@syntropy/mongoose-document-versioner": "^2.0.2",
         "babel-cli": "^6.26.0",
         "babel-preset-es2015": "^6.22.0",
         "bluebird": "^3.5.1",

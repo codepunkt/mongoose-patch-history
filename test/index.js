@@ -68,7 +68,7 @@ describe('mongoose-patch-history', () => {
     Sport = mongoose.model('Sport', SportSchema)
     User = mongoose.model('User', new Schema())
 
-    mongoose.connect('mongodb://localhost/mongoose-patch-history', () => {
+    mongoose.connect('mongodb://localhost:27017/mongoose-patch-history', { useNewUrlParser: true }, () => {
       join(
         Comment.remove(),
         Comment.Patches.remove(),

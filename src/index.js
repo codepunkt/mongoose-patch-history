@@ -3,7 +3,16 @@ import { Schema } from 'mongoose'
 import Promise, { join } from 'bluebird'
 import jsonpatch from 'fast-json-patch'
 import { decamelize, pascalize } from 'humps'
-import { dropRightWhile, each, map, merge, omit, get, tail } from 'lodash'
+import {
+  dropRightWhile,
+  each,
+  map,
+  merge,
+  omit,
+  omitBy,
+  get,
+  tail,
+} from 'lodash'
 
 export const RollbackError = function(message, extra) {
   Error.captureStackTrace(this, this.constructor)
@@ -230,7 +239,7 @@ export default function(schema, opts) {
     const conditions = Object.assign(
       {},
       this._conditions,
-      this._update.$set || this._update
+      this._update.$set || omitBy(this._update, (value, key) => key[0] === '$')
     )
 
     this.model
@@ -266,7 +275,7 @@ export default function(schema, opts) {
     const conditions = Object.assign(
       {},
       this._conditions,
-      this._update.$set || this._update
+      this._update.$set || omitBy(this._update, (value, key) => key[0] === '$')
     )
 
     this.model
