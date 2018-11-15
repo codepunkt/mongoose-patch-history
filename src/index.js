@@ -236,6 +236,7 @@ export default function(schema, opts) {
     this.model
       .findOne(conditions)
       .then(doc => {
+        if (!doc) return next()
         doc._original = this._original
         return createPatch(doc, this.options)
       })
