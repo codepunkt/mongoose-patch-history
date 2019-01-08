@@ -251,7 +251,14 @@ export default function(schema, opts) {
     this.model
       .find(this._conditions)
       .then(originals => {
-        this._originals = originals.map(original => toJSON(original.data()))
+        const originalIds = []
+        const originalData = []
+        for (const original of originals) {
+          originalIds.push(original._id)
+          originalData.push(toJSON(original.data()))
+        }
+        this._originalIds = originalIds
+        this._originals = originalData
       })
       .then(() => next())
       .catch(next)
@@ -260,11 +267,7 @@ export default function(schema, opts) {
   function postUpdateMany(result, next) {
     if (result.nModified === 0) return
 
-    const conditions = Object.assign(
-      {},
-      this._conditions,
-      this._update.$set || this._update
-    )
+    const conditions = { _id: { $in: this._originalIds } }
 
     this.model
       .find(conditions)
