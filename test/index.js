@@ -27,7 +27,10 @@ CommentSchema.plugin(patchHistory, {
   },
 })
 
-const PostSchema = new Schema({ title: String }, { timestamps: true })
+const PostSchema = new Schema({
+  title: String,
+  tags: { type: [String], default: void 0 }
+}, { timestamps: true })
 PostSchema.plugin(patchHistory, {
   mongoose,
   name: 'postPatches',
@@ -327,6 +330,59 @@ describe('mongoose-patch-history', () => {
           assert.equal(patches.length, 1)
         })
         .then(done)
+        .catch(done)
+    })
+
+    it('handles the $push operator', done => {
+      Post.create({ title: 'tagged1', tags: ['match'] })
+        .then(post =>
+          Post.updateMany(
+            { _id: post._id },
+            { $push: { tags: 'match2' } },
+            { timestamps: false }
+          )
+        )
+        .then(() => Post.find({ title: 'tagged1' }))
+        .then(posts =>
+          posts[0].patches.find({ ref: posts[0]._id }).sort({ _id: 1 })
+        )
+        .then(patches => {
+          assert.equal(patches.length, 2)
+          assert.equal(
+            JSON.stringify(patches[1].ops),
+            JSON.stringify([
+              { op: 'add', path: '/tags/1', value: 'match2' },
+            ])
+          )
+        })
+        .then(() => done())
+        .catch(done)
+    })
+
+    it('handles the $pull operator', done => {
+      Post.create({ title: 'tagged2', tags: ['match'] })
+        .then(post =>
+          // Remove the 'match' tag from all posts tagged with 'match'
+          Post.updateMany(
+            { tags: 'match' },
+            { $pull: { tags: 'match' } },
+            { timestamps: false }
+          )
+        )
+        .then(() => Post.find({ title: 'tagged2' }))
+        .then(posts =>
+          posts[0].patches.find({ ref: posts[0]._id }).sort({ _id: 1 })
+        )
+        .then(patches => {
+          assert.equal(patches.length, 2)
+          assert.equal(
+            JSON.stringify(patches[1].ops),
+            JSON.stringify([
+              { op: 'remove', path: '/tags/0' }
+            ])
+          )
+        })
+        .then(() => done())
         .catch(done)
     })
   })
