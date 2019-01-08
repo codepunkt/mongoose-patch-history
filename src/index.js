@@ -250,11 +250,8 @@ export default function(schema, opts) {
   function preUpdateMany(next) {
     this.model
       .find(this._conditions)
-      .then((originals = []) => {
-        this._originals = []
-          .concat(originals)
-          .map(original => original || new this.model({}))
-          .map(original => toJSON(original.data()))
+      .then(originals => {
+        this._originals = originals.map(original => toJSON(original.data()))
       })
       .then(() => next())
       .catch(next)
