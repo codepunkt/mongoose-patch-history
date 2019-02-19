@@ -27,11 +27,12 @@ CommentSchema.plugin(patchHistory, {
   },
 })
 
-const PostSchema = new Schema({ title: String }, { timestamps: true })
+const PostSchema = new Schema({ title: String, hidden: String }, { timestamps: true })
 PostSchema.plugin(patchHistory, {
   mongoose,
   name: 'postPatches',
   transforms: [name => name.toLowerCase(), () => 'post_history'],
+  exclude: [ '/hidden' ],
   includes: {
     version: { type: Number, from: '__v' },
     reason: { type: String, from: '__reason' },
@@ -180,6 +181,26 @@ describe('mongoose-patch-history', () => {
         .then(post => post.patches.find({ ref: post.id }))
         .then(patches => {
           assert.equal(patches.length, 1)
+        })
+        .then(done)
+        .catch(done)
+    })
+
+    it('with excluded path', done => {
+      Post.findOne({ title: 'bar' })
+        .then(post => {
+          post.set({
+            title: 'exclude',
+            hidden: 'not visible'
+          })
+          return post.save()
+        })
+        .then(post => post.patches.find({ ref: post.id }).sort({ _id: 1 }))
+        .then(patches => {
+          assert.equal(
+            JSON.stringify(patches[2].ops),
+            JSON.stringify([{ op: 'replace', path: '/title', value: 'exclude' }])
+          )
         })
         .then(done)
         .catch(done)
@@ -383,7 +404,7 @@ describe('mongoose-patch-history', () => {
 
   describe('removing a document', () => {
     it('removes all patches', done => {
-      Post.findOne({ title: 'bar' })
+      Post.findOne({ title: 'exclude' })
         .then(post => post.remove())
         .then(post => post.patches.find({ ref: post.id }))
         .then(patches => {

@@ -35,6 +35,7 @@ const createPatchModel = options => {
 
 const defaultOptions = {
   includes: {},
+  exclude: [],
   removePatches: true,
   transforms: [pascalize, decamelize],
   trackOriginalValue: false,
@@ -154,7 +155,7 @@ export default function(schema, opts) {
     const ops = jsonpatch.compare(
       document.isNew ? {} : document._original || {},
       toJSON(document.data())
-    )
+    ).filter(op => !options.exclude.includes(op.path))
 
     // don't save a patch when there are no changes to save
     if (!ops.length) {
