@@ -152,10 +152,12 @@ export default function(schema, opts) {
   // added to the associated patch collection
   function createPatch(document, queryOptions = {}) {
     const { _id: ref } = document
-    const ops = jsonpatch.compare(
-      document.isNew ? {} : document._original || {},
-      toJSON(document.data())
-    ).filter(op => !options.exclude.includes(op.path))
+    const ops = jsonpatch
+      .compare(
+        document.isNew ? {} : document._original || {},
+        toJSON(document.data())
+      )
+      .filter(op => !options.exclude.includes(op.path))
 
     // don't save a patch when there are no changes to save
     if (!ops.length) {
