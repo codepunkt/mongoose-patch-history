@@ -14,7 +14,13 @@ To use **mongoose-patch-history** for an existing mongoose schema you can simply
 
 ```javascript
 import mongoose, { Schema } from 'mongoose'
-import patchHistory from 'mongoose-patch-history'
+import patchHistory from 'mongoose-patch-history' 
+
+/* or the following if not running your app with babel:
+const patchHistory = require('mongoose-patch-history').default;
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
+*/
 
 const PostSchema = new Schema({
   title: { type: String, required: true },
