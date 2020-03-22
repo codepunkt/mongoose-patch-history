@@ -19,7 +19,7 @@
         "istanbul": "^0.4.5",
         "mocha": "^5.0.5",
         "pre-commit": "^1.2.2",
-        "prettier": "^1.11.1"
+        "prettier": "^2.0.1"
     },
     "scripts": {
         "addCompile": "git add lib/",
