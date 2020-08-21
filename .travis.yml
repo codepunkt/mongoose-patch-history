@@ -2,9 +2,8 @@ language: node_js
 dist: trusty
 sudo: required
 node_js:
-  - "9"
-  - "8"
   - "10"
+  - "12"
 services:
   - mongodb
 before_script:
