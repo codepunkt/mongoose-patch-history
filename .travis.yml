@@ -5,23 +5,19 @@ node_js:
   - '10'
   - '12'
 env:
-  matrix:
-    - MONGODB=3.6.19
-    - MONGODB=4.0.20
-    - MONGODB=4.2.9
-    - MONGODB=4.4.0
-
-matrix:
-  fast_finish: true
+  - MONGODB=3.6.19
+  - MONGODB=4.0.20
+  - MONGODB=4.2.9
+  - MONGODB=4.4.0
 
 install:
-  - wget http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1804-${MONGODB}.tgz
-  - tar xzf mongodb-linux-x86_64-ubuntu1804-${MONGODB}.tgz
-  - ${PWD}/mongodb-linux-x86_64-ubuntu1804-${MONGODB}/bin/mongod --version
+  - wget http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1804-$MONGODB.tgz
+  - tar xzf mongodb-linux-x86_64-ubuntu1804-$MONGODB.tgz
+  - ${PWD}/mongodb-linux-x86_64-ubuntu1804-$MONGODB/bin/mongod --version
 
 before_script:
-  - mkdir ${PWD}/mongodb-linux-x86_64-ubuntu1804-${MONGODB}/data
-  - ${PWD}/mongodb-linux-x86_64-ubuntu1804-${MONGODB}/bin/mongod --dbpath ${PWD}/mongodb-linux-x86_64-ubuntu1804-${MONGODB}/data --logpath ${PWD}/mongodb-linux-x86_64-ubuntu1804-${MONGODB}/mongodb.log --fork
+  - mkdir ${PWD}/mongodb-linux-x86_64-ubuntu1804-$MONGODB/data
+  - ${PWD}/mongodb-linux-x86_64-ubuntu1804-$MONGODB/bin/mongod --dbpath ${PWD}/mongodb-linux-x86_64-ubuntu1804-$MONGODB/data --logpath ${PWD}/mongodb-linux-x86_64-ubuntu1804-$MONGODB/mongodb.log --fork
   - sleep 15
   - mongo mydb_test --eval 'db.createUser({user:"travis",pwd:"test",roles:["readWrite"]});'
 
