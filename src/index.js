@@ -45,6 +45,21 @@ const defaultOptions = {
 // works correctly
 const toJSON = obj => JSON.parse(JSON.stringify(obj))
 
+// helper function to merge query conditions after an update has happened
+// usefull if a property which was initially defined in _conditions got overwritten
+// with the update
+const mergeQueryConditionsWithUpdate = (_conditions, _update) => {
+  const update = _update ? _update.$set || _update : _update
+  const conditions = Object.assign({}, conditions, update)
+
+  // excluding array filter updates
+  // format $[identifier]
+  Object.keys(conditions).forEach(key => {
+    if (key.includes('$[')) delete conditions[key]
+  })
+  return conditions
+}
+
 export default function(schema, opts) {
   const options = merge({}, defaultOptions, opts)
 
@@ -227,10 +242,9 @@ export default function(schema, opts) {
   function postUpdateOne(result, next) {
     if (result.nModified === 0) return
 
-    const conditions = Object.assign(
-      {},
+    const conditions = mergeQueryConditionsWithUpdate(
       this._conditions,
-      this._update ? this._update.$set || this._update : this._update
+      this._update
     )
 
     this.model
@@ -263,10 +277,9 @@ export default function(schema, opts) {
   function postUpdateMany(result, next) {
     if (result.nModified === 0) return
 
-    const conditions = Object.assign(
-      {},
+    const conditions = mergeQueryConditionsWithUpdate(
       this._conditions,
-      this._update ? this._update.$set || this._update : this._update
+      this._update
     )
 
     this.model

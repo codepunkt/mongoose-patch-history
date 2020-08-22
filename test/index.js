@@ -58,8 +58,14 @@ const SportSchema = new Schema({
 })
 SportSchema.plugin(patchHistory, { mongoose, name: 'sportPatches' })
 
+const PricePoolSchema = new Schema({
+  name: { type: String },
+  prices: [{ name: { type: String }, value: { type: Number } }],
+})
+PricePoolSchema.plugin(patchHistory, { mongoose, name: 'pricePoolPatches' })
+
 describe('mongoose-patch-history', () => {
-  let Comment, Post, Fruit, Sport, User
+  let Comment, Post, Fruit, Sport, User, PricePool
 
   before(done => {
     Comment = mongoose.model('Comment', CommentSchema)
@@ -67,6 +73,7 @@ describe('mongoose-patch-history', () => {
     Fruit = mongoose.model('Fruit', FruitSchema)
     Sport = mongoose.model('Sport', SportSchema)
     User = mongoose.model('User', new Schema())
+    PricePool = mongoose.model('PricePool', PricePoolSchema)
 
     mongoose
       .connect('mongodb://localhost/mongoose-patch-history', {
@@ -85,7 +92,9 @@ describe('mongoose-patch-history', () => {
           Sport.Patches.deleteMany({}),
           Post.deleteMany({}),
           Post.Patches.deleteMany({}),
-          User.deleteMany({})
+          User.deleteMany({}),
+          PricePool.deleteMany({}),
+          PricePool.Patches.deleteMany({})
         )
           .then(() => User.create())
           .then(() => done())
@@ -266,6 +275,29 @@ describe('mongoose-patch-history', () => {
         .then(() => {
           done()
         })
+        .catch(done)
+    })
+
+    it('with array filters: adds a patch', done => {
+      PricePool.create({
+        name: 'test',
+        prices: [
+          { name: 'test1', value: 1 },
+          { name: 'test2', value: 2 },
+        ],
+      })
+        .then(pricePool =>
+          PricePool.updateOne(
+            { name: pricePool.name },
+            { $set: { 'prices.$[elem].value': 3 } },
+            { arrayFilters: [{ 'elem.name': { $eq: 'test1' } }] }
+          )
+        )
+        .then(res => PricePool.Patches.find({}))
+        .then(patches => {
+          assert.equal(patches.length, 2)
+        })
+        .then(done)
         .catch(done)
     })
   })
