@@ -285,7 +285,7 @@ describe('mongoose-patch-history', () => {
     })
 
     it('without changes: doesn`t add a patch', done => {
-      Post.updateOne({ title: 'baz' }, {})
+      Post.updateOne({ title: 'baz' }, { title: 'baz' })
         .then(() => Post.findOne({ title: 'baz' }))
         .then(post => post.patches.find({ ref: post.id }))
         .then(patches => {
@@ -320,7 +320,7 @@ describe('mongoose-patch-history', () => {
     })
 
     it('without changes: doesn`t add a patch', done => {
-      Post.updateMany({ title: 'baz' }, {})
+      Post.updateMany({ title: 'baz' }, { title: 'baz' })
         .then(() => Post.find({ title: 'baz' }))
         .then(posts => posts[0].patches.find({ ref: posts[0].id }))
         .then(patches => {
