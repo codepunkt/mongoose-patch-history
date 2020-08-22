@@ -230,7 +230,7 @@ export default function(schema, opts) {
     const conditions = Object.assign(
       {},
       this._conditions,
-      this._update.$set || this._update
+      this._update ? this._update.$set || this._update : this._update
     )
 
     this.model
@@ -266,7 +266,7 @@ export default function(schema, opts) {
     const conditions = Object.assign(
       {},
       this._conditions,
-      this._update.$set || this._update
+      this._update ? this._update.$set || this._update : this._update
     )
 
     this.model
