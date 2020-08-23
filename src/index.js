@@ -35,10 +35,26 @@ const createPatchModel = options => {
 
 const defaultOptions = {
   includes: {},
+  excludes: [],
   removePatches: true,
   transforms: [pascalize, decamelize],
   trackOriginalValue: false,
 }
+
+// Splits a json-patch-path of form "/path/to/object" to an array "['path', 'to', 'object']"
+const getArrayFromPath = path => path.replace(/^\//, '').split('/')
+
+// Checks if 'pathToCover' is covered by path
+// Exp. 1: path '/path/to',              pathToCover '/path/to/object'       => true
+// Exp. 2: path '/arrayPath/*/property', pathToCover '/arrayPath/1/property' => true
+const isPathCovered = (path, pathToCover) =>
+  path.every(
+    (entry, idx) =>
+      entry === pathToCover[idx] ||
+      (entry === '*' &&
+        Number.isInteger(Number(pathToCover[idx])) &&
+        Number(pathToCover[idx]) >= 0)
+  )
 
 // used to convert bson to json - especially ObjectID references need
 // to be converted to hex strings so that the jsonpatch `compare` method
@@ -64,6 +80,9 @@ export default function(schema, opts) {
 
   // get _id type from schema
   options._idType = schema.tree._id.type
+
+  // transform excludes option
+  options.excludes = options.excludes.map(getArrayFromPath)
 
   // validate parameters
   assert(options.mongoose, '`mongoose` option must be defined')
@@ -167,10 +186,20 @@ export default function(schema, opts) {
   // added to the associated patch collection
   function createPatch(document, queryOptions = {}) {
     const { _id: ref } = document
-    const ops = jsonpatch.compare(
-      document.isNew ? {} : document._original || {},
-      toJSON(document.data())
-    )
+    const ops = jsonpatch
+      .compare(
+        document.isNew ? {} : document._original || {},
+        toJSON(document.data())
+      )
+      .filter(op => {
+        if (options.excludes.length > 0) {
+          const pathArray = getArrayFromPath(op.path)
+          return !options.excludes.some(exclude =>
+            isPathCovered(exclude, pathArray)
+          )
+        }
+        return true
+      })
 
     // don't save a patch when there are no changes to save
     if (!ops.length) {
