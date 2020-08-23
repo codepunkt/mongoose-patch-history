@@ -4,6 +4,16 @@
     "description": "Mongoose plugin that saves a history of JSON patch operations for all documents belonging to a schema in an associated 'patches' collection",
     "main": "lib/index.js",
     "author": "Christoph Werner <christoph@codepunkt.de>",
+    "contributors": [
+        {
+            "name": "Robin Weinreich",
+            "email": "robin.weinreich@posteo.de"
+        },
+        {
+            "name": "Brett Ausmeier",
+            "email": "brett@ausmeier.co.za"
+        }
+    ],
     "license": "MIT",
     "dependencies": {
         "fast-json-patch": "^2.0.4",
