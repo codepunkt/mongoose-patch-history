@@ -8,7 +8,7 @@ mongoose.Promise = Promise
 const ObjectId = mongoose.Types.ObjectId
 
 const CommentSchema = new Schema({ text: String })
-CommentSchema.virtual('user').set(function(user) {
+CommentSchema.virtual('user').set(function (user) {
   this._user = user
 })
 CommentSchema.plugin(patchHistory, {
@@ -27,7 +27,13 @@ CommentSchema.plugin(patchHistory, {
   },
 })
 
-const PostSchema = new Schema({ title: String }, { timestamps: true })
+const PostSchema = new Schema(
+  {
+    title: String,
+    tags: { type: [String], default: void 0 },
+  },
+  { timestamps: true }
+)
 PostSchema.plugin(patchHistory, {
   mongoose,
   name: 'postPatches',
@@ -39,10 +45,10 @@ PostSchema.plugin(patchHistory, {
   },
 })
 
-PostSchema.virtual('user').set(function(user) {
+PostSchema.virtual('user').set(function (user) {
   this.__user = user
 })
-PostSchema.virtual('reason').set(function(reason) {
+PostSchema.virtual('reason').set(function (reason) {
   this.__reason = reason
 })
 
@@ -58,8 +64,14 @@ const SportSchema = new Schema({
 })
 SportSchema.plugin(patchHistory, { mongoose, name: 'sportPatches' })
 
+const PricePoolSchema = new Schema({
+  name: { type: String },
+  prices: [{ name: { type: String }, value: { type: Number } }],
+})
+PricePoolSchema.plugin(patchHistory, { mongoose, name: 'pricePoolPatches' })
+
 describe('mongoose-patch-history', () => {
-  let Comment, Post, Fruit, Sport, User
+  let Comment, Post, Fruit, Sport, User, PricePool
 
   before(done => {
     Comment = mongoose.model('Comment', CommentSchema)
@@ -67,6 +79,7 @@ describe('mongoose-patch-history', () => {
     Fruit = mongoose.model('Fruit', FruitSchema)
     Sport = mongoose.model('Sport', SportSchema)
     User = mongoose.model('User', new Schema())
+    PricePool = mongoose.model('PricePool', PricePoolSchema)
 
     mongoose
       .connect('mongodb://localhost/mongoose-patch-history', {
@@ -85,7 +98,9 @@ describe('mongoose-patch-history', () => {
           Sport.Patches.deleteMany({}),
           Post.deleteMany({}),
           Post.Patches.deleteMany({}),
-          User.deleteMany({})
+          User.deleteMany({}),
+          PricePool.deleteMany({}),
+          PricePool.Patches.deleteMany({})
         )
           .then(() => User.create())
           .then(() => done())
@@ -301,6 +316,29 @@ describe('mongoose-patch-history', () => {
         .then(done)
         .catch(done)
     })
+
+    it('handles array filters', done => {
+      PricePool.create({
+        name: 'test',
+        prices: [
+          { name: 'test1', value: 1 },
+          { name: 'test2', value: 2 },
+        ],
+      })
+        .then(pricePool =>
+          PricePool.updateOne(
+            { name: pricePool.name },
+            { $set: { 'prices.$[elem].value': 3 } },
+            { arrayFilters: [{ 'elem.name': { $eq: 'test1' } }] }
+          )
+        )
+        .then(res => PricePool.Patches.find({}))
+        .then(patches => {
+          assert.equal(patches.length, 2)
+        })
+        .then(done)
+        .catch(done)
+    })
   })
 
   describe('updating a document via updateMany()', () => {
@@ -334,6 +372,55 @@ describe('mongoose-patch-history', () => {
           assert.equal(patches.length, 1)
         })
         .then(done)
+        .catch(done)
+    })
+
+    it('handles the $push operator', done => {
+      Post.create({ title: 'tagged1', tags: ['match'] })
+        .then(post =>
+          Post.updateMany(
+            { _id: post._id },
+            { $push: { tags: 'match2' } },
+            { timestamps: false }
+          )
+        )
+        .then(() => Post.find({ title: 'tagged1' }))
+        .then(posts =>
+          posts[0].patches.find({ ref: posts[0]._id }).sort({ _id: 1 })
+        )
+        .then(patches => {
+          assert.equal(patches.length, 2)
+          assert.equal(
+            JSON.stringify(patches[1].ops),
+            JSON.stringify([{ op: 'add', path: '/tags/1', value: 'match2' }])
+          )
+        })
+        .then(() => done())
+        .catch(done)
+    })
+
+    it('handles the $pull operator', done => {
+      Post.create({ title: 'tagged2', tags: ['match'] })
+        .then(post =>
+          // Remove the 'match' tag from all posts tagged with 'match'
+          Post.updateMany(
+            { tags: 'match' },
+            { $pull: { tags: 'match' } },
+            { timestamps: false }
+          )
+        )
+        .then(() => Post.find({ title: 'tagged2' }))
+        .then(posts =>
+          posts[0].patches.find({ ref: posts[0]._id }).sort({ _id: 1 })
+        )
+        .then(patches => {
+          assert.equal(patches.length, 2)
+          assert.equal(
+            JSON.stringify(patches[1].ops),
+            JSON.stringify([{ op: 'remove', path: '/tags/0' }])
+          )
+        })
+        .then(() => done())
         .catch(done)
     })
   })
@@ -370,6 +457,21 @@ describe('mongoose-patch-history', () => {
         .then(posts => posts[0].patches.find({ ref: posts[0].id }))
         .then(patches => {
           assert.equal(patches.length, 2)
+        })
+        .then(done)
+        .catch(done)
+    })
+
+    it('with updateMany: adds a patch', done => {
+      Post.updateMany(
+        { title: 'upsert2' },
+        { title: 'upsert3' },
+        { upsert: true }
+      )
+        .then(() => Post.find({ title: 'upsert3' }))
+        .then(posts => posts[0].patches.find({ ref: posts[0].id }))
+        .then(patches => {
+          assert.equal(patches.length, 1)
         })
         .then(done)
         .catch(done)

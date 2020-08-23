@@ -45,6 +45,20 @@ const defaultOptions = {
 // works correctly
 const toJSON = obj => JSON.parse(JSON.stringify(obj))
 
+// helper function to merge query conditions after an update has happened
+// usefull if a property which was initially defined in _conditions got overwritten
+// with the update
+const mergeQueryConditionsWithUpdate = (_conditions, _update) => {
+  const update = _update ? _update.$set || _update : _update
+  const conditions = Object.assign({}, conditions, update)
+
+  // excluding updates other than $set
+  Object.keys(conditions).forEach(key => {
+    if (key.includes('$')) delete conditions[key]
+  })
+  return conditions
+}
+
 export default function(schema, opts) {
   const options = merge({}, defaultOptions, opts)
 
@@ -206,6 +220,7 @@ export default function(schema, opts) {
     this.model
       .findOne(this._conditions)
       .then(original => {
+        if (original) this._originalId = original._id
         original = original || new this.model({})
         this._original = toJSON(original.data())
       })
@@ -227,11 +242,13 @@ export default function(schema, opts) {
   function postUpdateOne(result, next) {
     if (result.nModified === 0) return
 
-    const conditions = Object.assign(
-      {},
-      this._conditions,
-      this._update.$set || this._update
-    )
+    let conditions
+    if (this._originalId) conditions = { _id: { $eq: this._originalId } }
+    else
+      conditions = mergeQueryConditionsWithUpdate(
+        this._conditions,
+        this._update
+      )
 
     this.model
       .findOne(conditions)
@@ -250,11 +267,15 @@ export default function(schema, opts) {
   function preUpdateMany(next) {
     this.model
       .find(this._conditions)
-      .then((originals = []) => {
-        this._originals = []
-          .concat(originals)
-          .map(original => original || new this.model({}))
-          .map(original => toJSON(original.data()))
+      .then(originals => {
+        const originalIds = []
+        const originalData = []
+        for (const original of originals) {
+          originalIds.push(original._id)
+          originalData.push(toJSON(original.data()))
+        }
+        this._originalIds = originalIds
+        this._originals = originalData
       })
       .then(() => next())
       .catch(next)
@@ -263,11 +284,13 @@ export default function(schema, opts) {
   function postUpdateMany(result, next) {
     if (result.nModified === 0) return
 
-    const conditions = Object.assign(
-      {},
-      this._conditions,
-      this._update.$set || this._update
-    )
+    let conditions
+    if (this._originalIds.length === 0)
+      conditions = mergeQueryConditionsWithUpdate(
+        this._conditions,
+        this._update
+      )
+    else conditions = { _id: { $in: this._originalIds } }
 
     this.model
       .find(conditions)
