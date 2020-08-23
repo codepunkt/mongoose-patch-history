@@ -570,6 +570,30 @@ describe('mongoose-patch-history', () => {
         .then(done)
         .catch(done)
     })
+
+    it("updates but doesn't save the document", done => {
+      Comment.create({ text: 'comm 1', user: ObjectId() })
+        .then(c => Comment.findOne({ _id: c.id }))
+        .then(c => c.set({ text: 'comm 2', user: ObjectId() }).save())
+        .then(c => Comment.findOne({ _id: c.id }))
+        .then(c => c.set({ text: 'comm 3', user: ObjectId() }).save())
+        .then(c => Comment.findOne({ _id: c.id }))
+        .then(c => join(c, c.patches.find({ ref: c.id })))
+        .then(([c, patches]) =>
+          c.rollback(patches[1].id, { user: ObjectId() }, false)
+        )
+        .then(c => {
+          assert.equal(c.text, 'comm 2')
+          return Comment.findOne({ _id: c.id })
+        })
+        .then(c => {
+          assert.equal(c.text, 'comm 3')
+          return c.patches.find({ ref: c.id })
+        })
+        .then(patches => assert.equal(patches.length, 3))
+        .then(done)
+        .catch(done)
+    })
   })
 
   describe('model and collection names', () => {
