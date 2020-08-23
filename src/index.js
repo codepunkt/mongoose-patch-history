@@ -89,7 +89,7 @@ export default function(schema, opts) {
   }
 
   // roll the document back to the state of a given patch id()
-  schema.methods.rollback = function(patchId, data) {
+  schema.methods.rollback = function (patchId, data, save = true) {
     return this.patches
       .find({ ref: this.id })
       .sort({ date: 1 })
@@ -117,11 +117,13 @@ export default function(schema, opts) {
               jsonpatch.applyPatch(state, patch.ops, true)
             })
 
-            // save new state and resolve with the resulting document
+            // set new state
             this.set(merge(data, state))
-              .save()
-              .then(resolve)
-              .catch(reject)
+
+            // in case of save, save it back to the db and resolve
+            if (save) {
+              this.save().then(resolve).catch(reject)
+            } else resolve(this)
           })
       )
   }
