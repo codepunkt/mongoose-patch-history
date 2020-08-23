@@ -8,7 +8,7 @@ mongoose.Promise = Promise
 const ObjectId = mongoose.Types.ObjectId
 
 const CommentSchema = new Schema({ text: String })
-CommentSchema.virtual('user').set(function(user) {
+CommentSchema.virtual('user').set(function (user) {
   this._user = user
 })
 CommentSchema.plugin(patchHistory, {
@@ -45,10 +45,10 @@ PostSchema.plugin(patchHistory, {
   },
 })
 
-PostSchema.virtual('user').set(function(user) {
+PostSchema.virtual('user').set(function (user) {
   this.__user = user
 })
-PostSchema.virtual('reason').set(function(reason) {
+PostSchema.virtual('reason').set(function (reason) {
   this.__reason = reason
 })
 
@@ -81,26 +81,30 @@ describe('mongoose-patch-history', () => {
     User = mongoose.model('User', new Schema())
     PricePool = mongoose.model('PricePool', PricePoolSchema)
 
-    mongoose.connect(
-      'mongodb://localhost/mongoose-patch-history',
-      () => {
+    mongoose
+      .connect('mongodb://localhost/mongoose-patch-history', {
+        useNewUrlParser: true,
+        useCreateIndex: true,
+        useUnifiedTopology: true,
+        useFindAndModify: false,
+      })
+      .then(() => {
         join(
-          Comment.remove(),
-          Comment.Patches.remove(),
-          Fruit.remove(),
-          Fruit.Patches.remove(),
-          Sport.remove(),
-          Sport.Patches.remove(),
-          Post.remove(),
-          Post.Patches.remove(),
-          User.remove(),
+          Comment.deleteMany({}),
+          Comment.Patches.deleteMany({}),
+          Fruit.deleteMany({}),
+          Fruit.Patches.deleteMany({}),
+          Sport.deleteMany({}),
+          Sport.Patches.deleteMany({}),
+          Post.deleteMany({}),
+          Post.Patches.deleteMany({}),
+          User.deleteMany({}),
           PricePool.deleteMany({}),
           PricePool.Patches.deleteMany({})
         )
           .then(() => User.create())
           .then(() => done())
-      }
-    )
+      })
   })
 
   after(() => mongoose.connection.close())

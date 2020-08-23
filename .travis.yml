@@ -1,13 +1,26 @@
 language: node_js
-dist: trusty
+dist: xenial
 sudo: required
 node_js:
-  - "10"
-  - "12"
-services:
-  - mongodb
+  - '10'
+  - '12'
+env:
+  - MONGODB=3.6.19
+  - MONGODB=4.0.20
+  - MONGODB=4.2.9
+  - MONGODB=4.4.0
+
+install:
+  - wget http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1604-$MONGODB.tgz
+  - tar xzf mongodb-linux-x86_64-ubuntu1604-$MONGODB.tgz
+  - ${PWD}/mongodb-linux-x86_64-ubuntu1604-$MONGODB/bin/mongod --version
+
 before_script:
+  - mkdir ${PWD}/mongodb-linux-x86_64-ubuntu1604-$MONGODB/data
+  - ${PWD}/mongodb-linux-x86_64-ubuntu1604-$MONGODB/bin/mongod --dbpath ${PWD}/mongodb-linux-x86_64-ubuntu1604-$MONGODB/data --logpath ${PWD}/mongodb-linux-x86_64-ubuntu1604-$MONGODB/mongodb.log --fork
   - sleep 15
   - mongo mydb_test --eval 'db.createUser({user:"travis",pwd:"test",roles:["readWrite"]});'
+  - npm install
+
 after_script:
   - istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec --compilers js:babel-register && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage
