@@ -92,6 +92,10 @@ Post.create({ title: 'JSON patches' })
 
 ### Rollback to a specific patch
 
+```javascript
+rollback(ObjectId, data, save)
+```
+
 Documents have a `rollback` method that accepts the _ObjectId_ of a patch doc and sets the document to the state of that patch, adding a new patch to the history.
 
 ```javascript
@@ -105,6 +109,36 @@ Post.create({ title: 'First version' })
   })
   .then(console.log)
 
+// {
+//   _id: ObjectId('4edd40c86762e0fb12000006'),
+//   title: 'Second version',
+//   __v: 0
+// }
+```
+
+#### Injecting data
+
+Further the `rollback` method accepts a _data_ object which is injected into the document.
+
+```javascript
+post.rollback(patches[1].id, { name: 'merged' })
+
+// {
+//   _id: ObjectId('4edd40c86762e0fb12000006'),
+//   title: 'Second version',
+//   name: 'merged',
+//   __v: 0
+// }
+```
+
+#### Rollback without saving
+
+To `rollback` the document to a specific patch but without saving it back to the database call the method with an empty _data_ object and the save flag set to false.
+
+```javascript
+post.rollback(patches[1].id, {}, false)
+
+// Returns the document without saving it back to the db.
 // {
 //   _id: ObjectId('4edd40c86762e0fb12000006'),
 //   title: 'Second version',
@@ -196,7 +230,7 @@ Post.create({
   })
 ```
 
-In case of a rollback in this scenario, the `rollback` method accepts an object as its second parameter where additional data can be injected:
+In case of a rollback in this scenario, the `rollback` method accepts an [object as its second parameter](https://github.com/codepunkt/mongoose-patch-history#injecting-data) where additional data can be injected:
 
 ```javascript
 Post.create({ title: 'v1', user: mongoose.Types.ObjectId() })
