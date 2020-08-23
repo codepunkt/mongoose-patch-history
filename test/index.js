@@ -461,6 +461,21 @@ describe('mongoose-patch-history', () => {
         .then(done)
         .catch(done)
     })
+
+    it('with updateMany: adds a patch', done => {
+      Post.updateMany(
+        { title: 'upsert2' },
+        { title: 'upsert3' },
+        { upsert: true }
+      )
+        .then(() => Post.find({ title: 'upsert3' }))
+        .then(posts => posts[0].patches.find({ ref: posts[0].id }))
+        .then(patches => {
+          assert.equal(patches.length, 1)
+        })
+        .then(done)
+        .catch(done)
+    })
   })
 
   describe('update with multi', () => {

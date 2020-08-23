@@ -284,7 +284,13 @@ export default function(schema, opts) {
   function postUpdateMany(result, next) {
     if (result.nModified === 0) return
 
-    const conditions = { _id: { $in: this._originalIds } }
+    let conditions
+    if (this._originalIds.length === 0)
+      conditions = mergeQueryConditionsWithUpdate(
+        this._conditions,
+        this._update
+      )
+    else conditions = { _id: { $in: this._originalIds } }
 
     this.model
       .find(conditions)
