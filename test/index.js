@@ -68,21 +68,28 @@ describe('mongoose-patch-history', () => {
     Sport = mongoose.model('Sport', SportSchema)
     User = mongoose.model('User', new Schema())
 
-    mongoose.connect('mongodb://localhost/mongoose-patch-history', () => {
-      join(
-        Comment.remove(),
-        Comment.Patches.remove(),
-        Fruit.remove(),
-        Fruit.Patches.remove(),
-        Sport.remove(),
-        Sport.Patches.remove(),
-        Post.remove(),
-        Post.Patches.remove(),
-        User.remove()
-      )
-        .then(() => User.create())
-        .then(() => done())
-    })
+    mongoose
+      .connect('mongodb://localhost/mongoose-patch-history', {
+        useNewUrlParser: true,
+        useCreateIndex: true,
+        useUnifiedTopology: true,
+        useFindAndModify: false,
+      })
+      .then(() => {
+        join(
+          Comment.deleteMany({}),
+          Comment.Patches.deleteMany({}),
+          Fruit.deleteMany({}),
+          Fruit.Patches.deleteMany({}),
+          Sport.deleteMany({}),
+          Sport.Patches.deleteMany({}),
+          Post.deleteMany({}),
+          Post.Patches.deleteMany({}),
+          User.deleteMany({})
+        )
+          .then(() => User.create())
+          .then(() => done())
+      })
   })
 
   after(() => mongoose.connection.close())
