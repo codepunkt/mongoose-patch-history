@@ -1,9 +1,19 @@
 {
     "name": "mongoose-patch-history",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "description": "Mongoose plugin that saves a history of JSON patch operations for all documents belonging to a schema in an associated 'patches' collection",
     "main": "lib/index.js",
     "author": "Christoph Werner <christoph@codepunkt.de>",
+    "contributors": [
+        {
+            "name": "Robin Weinreich",
+            "email": "robin.weinreich@posteo.de"
+        },
+        {
+            "name": "Brett Ausmeier",
+            "email": "brett@ausmeier.co.za"
+        }
+    ],
     "license": "MIT",
     "dependencies": {
         "fast-json-patch": "^2.0.4",
@@ -17,17 +27,17 @@
         "bluebird": "^3.5.1",
         "coveralls": "^3.0.0",
         "istanbul": "^0.4.5",
-        "mocha": "^5.0.5",
+        "mocha": "^8.1.1",
         "pre-commit": "^1.2.2",
         "prettier": "^1.11.1"
     },
     "scripts": {
         "addCompile": "git add lib/",
-        "coverage": "istanbul cover _mocha -- --compilers js:babel-register",
+        "coverage": "istanbul cover _mocha -- --require babel-register",
         "compile": "rm -rf lib/ && babel -d lib/ src/",
         "prepublish": "npm run compile",
         "prettier": "prettier --no-semi --single-quote --trailing-comma es5 --write src/**/*.js",
-        "test": "mocha --compilers js:babel-register"
+        "test": "mocha --require babel-register"
     },
     "pre-commit": {
         "run": "prettier, test, compile, addCompile",
