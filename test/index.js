@@ -61,13 +61,26 @@ FruitSchema.plugin(patchHistory, { mongoose, name: 'fruitPatches' })
 const ExcludeSchema = new Schema({
   name: { type: String },
   hidden: { type: String },
-  object: { hiddenProperty: { type: String } },
+  object: {
+    hiddenProperty: { type: String },
+    array: [
+      { hidden: { type: String }, property: { hidden: { type: String } } },
+    ],
+  },
   array: [{ hiddenProperty: { type: String }, property: { type: String } }],
+  emptyArray: [{ hiddenProperty: { type: String } }],
 })
 ExcludeSchema.plugin(patchHistory, {
   mongoose,
   name: 'excludePatches',
-  excludes: ['/hidden', '/object/hiddenProperty', '/array/*/hiddenProperty'],
+  excludes: [
+    '/hidden',
+    '/object/hiddenProperty',
+    '/object/array/1/hidden',
+    '/object/array/*/property/hidden',
+    '/array/*/hiddenProperty',
+    '/emptyArray/*/hiddenProperty',
+  ],
 })
 
 const SportSchema = new Schema({
@@ -190,8 +203,19 @@ describe('mongoose-patch-history', () => {
         Exclude.create({
           name: 'exclude1',
           hidden: 'hidden',
-          object: { hiddenProperty: 'hidden' },
-          array: [{ hiddenProperty: 'hidden', property: 'visible' }],
+          object: {
+            hiddenProperty: 'hidden',
+            array: [
+              { hidden: 'h', property: { hidden: 'h' } },
+              { hidden: 'h', property: { hidden: 'h' } },
+              { hidden: 'h', property: { hidden: 'h' } },
+            ],
+          },
+          array: [
+            { hiddenProperty: 'hidden', property: 'visible' },
+            { hiddenProperty: 'hidden', property: 'visible' },
+          ],
+          emptyArray: [{ hiddenProperty: 'hidden' }],
         })
           .then(exclude => exclude.patches.find({ ref: exclude._id }))
           .then(patches => {
@@ -200,8 +224,17 @@ describe('mongoose-patch-history', () => {
               JSON.stringify(patches[0].ops),
               JSON.stringify([
                 { op: 'add', path: '/name', value: 'exclude1' },
-                { op: 'add', path: '/object', value: {} },
-                { op: 'add', path: '/array', value: [{ property: 'visible' }] },
+                {
+                  op: 'add',
+                  path: '/object',
+                  value: { array: [{ hidden: 'h' }, {}, { hidden: 'h' }] },
+                },
+                {
+                  op: 'add',
+                  path: '/array',
+                  value: [{ property: 'visible' }, { property: 'visible' }],
+                },
+                { op: 'add', path: '/emptyArray', value: [{}] },
               ])
             )
           })

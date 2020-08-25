@@ -41,8 +41,67 @@ const defaultOptions = {
   trackOriginalValue: false,
 }
 
-// Splits a json-patch-path of form "/path/to/object" to an array "['path', 'to', 'object']"
-const getArrayFromPath = path => path.replace(/^\//, '').split('/')
+const ARRAY_IDENTIFIER = '*'
+
+/**
+ * Splits a json-patch-path of form `/path/to/object` to an array `['path', 'to', 'object']`.
+ * Note: `/` is returned as `[]`
+ *
+ * @param {string} path Path to split
+ */
+const getArrayFromPath = path => {
+  const pathArray = path.replace(/^\//, '').split('/')
+  if (pathArray.length === 1 && pathArray[0] === '') return []
+  else return pathArray
+}
+
+/**
+ * Checks the provided `json-patch-operation` on `pathToExclude`. This check is joins the `path` and `value` property of the `operation` and removes any hit.
+ *
+ * @param {import('fast-json-patch').Operation} patch operation to check with `pathToExclude`
+ * @param {String[]} pathToExclude Path to property to remove from value of `operation`
+ *
+ * @return `false` if `patch.value` is `{}` or `undefined` after remove, `true` in any other case
+ */
+const deepRemovePath = (patch, pathToExclude) => {
+  const patchPath = getArrayFromPath(patch.path)
+
+  // first check if the base path of the json-patch overlaps with the path we want to exclude
+  if (isPathCovered(patchPath, pathToExclude)) {
+    let value = patch.value
+
+    // because the paths overlap start at patchPath.length
+    // e.g.
+    // patch: { path:'/object', value:{ property: 'test' } }
+    // pathToExclude: '/object/property'
+    // need to start at array idx 1, because value starts at idx 0
+    for (let i = patchPath.length; i < pathToExclude.length - 1; i++) {
+      if (pathToExclude[i] === ARRAY_IDENTIFIER && Array.isArray(value)) {
+        value.forEach(elem => {
+          // start over with each array element and make a fresh check
+          // Note: it can happen that array elements are rendered to: {}
+          //         we need to keep them to keep the order of array elements consistent
+          deepRemovePath({ path: '/', value: elem }, pathToExclude.slice(i + 1))
+        })
+
+        // If the patch value has turned to {} return false so this patch can be filtered out
+        if (Object.keys(patch.value).length === 0) return false
+        return true
+      }
+      value = value[pathToExclude[i]]
+
+      if (typeof value === 'undefined') return true
+    }
+    if (typeof value[pathToExclude[pathToExclude.length - 1]] === 'undefined')
+      return true
+    else {
+      delete value[pathToExclude[pathToExclude.length - 1]]
+      // If the patch value has turned to {} return false so this patch can be filtered out
+      if (Object.keys(patch.value).length === 0) return false
+    }
+  }
+  return true
+}
 
 // Checks if 'pathToCover' is covered by path
 // Exp. 1: path '/path/to',              pathToCover '/path/to/object'       => true
@@ -194,8 +253,10 @@ export default function(schema, opts) {
       .filter(op => {
         if (options.excludes.length > 0) {
           const pathArray = getArrayFromPath(op.path)
-          return !options.excludes.some(exclude =>
-            isPathCovered(exclude, pathArray)
+          return (
+            !options.excludes.some(exclude =>
+              isPathCovered(exclude, pathArray)
+            ) && options.excludes.every(exclude => deepRemovePath(op, exclude))
           )
         }
         return true
