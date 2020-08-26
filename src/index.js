@@ -49,11 +49,7 @@ const ARRAY_IDENTIFIER = '*'
  *
  * @param {string} path Path to split
  */
-const getArrayFromPath = path => {
-  const pathArray = path.replace(/^\//, '').split('/')
-  if (pathArray.length === 1 && pathArray[0] === '') return []
-  else return pathArray
-}
+const getArrayFromPath = path => path.replace(/^\//, '').split('/')
 
 /**
  * Checks the provided `json-patch-operation` on `pathToExclude`. This check is joins the `path` and `value` property of the `operation` and removes any hit.
@@ -64,7 +60,7 @@ const getArrayFromPath = path => {
  * @return `false` if `patch.value` is `{}` or `undefined` after remove, `true` in any other case
  */
 const deepRemovePath = (patch, pathToExclude) => {
-  const patchPath = getArrayFromPath(patch.path)
+  const patchPath = sanitizeEmptyPath(getArrayFromPath(patch.path))
 
   // first check if the base path of the json-patch overlaps with the path we want to exclude
   if (isPathCovered(patchPath, pathToExclude)) {
@@ -102,6 +98,13 @@ const deepRemovePath = (patch, pathToExclude) => {
   }
   return true
 }
+
+/**
+ * Sanitizes a path `['']` to be used with `isPathCovered()`
+ * @param {String[]} path
+ */
+const sanitizeEmptyPath = path =>
+  path.length === 1 && path[0] === '' ? [] : path
 
 // Checks if 'pathToCover' is covered by path
 // Exp. 1: path '/path/to',              pathToCover '/path/to/object'       => true
