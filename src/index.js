@@ -52,7 +52,7 @@ const ARRAY_INDEX_WILDCARD = '*'
 const getArrayFromPath = path => path.replace(/^\//, '').split('/')
 
 /**
- * Checks the provided `json-patch-operation` on `excludePath`. This check is joins the `path` and `value` property of the `operation` and removes any hit.
+ * Checks the provided `json-patch-operation` on `excludePath`. This check joins the `path` and `value` property of the `operation` and removes any hit.
  *
  * @param {import('fast-json-patch').Operation} patch operation to check with `excludePath`
  * @param {String[]} excludePath Path to property to remove from value of `operation`
@@ -62,21 +62,19 @@ const getArrayFromPath = path => path.replace(/^\//, '').split('/')
 const deepRemovePath = (patch, excludePath) => {
   const operationPath = sanitizeEmptyPath(getArrayFromPath(patch.path))
 
-  // first check if the base path of the json-patch overlaps with the path we want to exclude
   if (isPathContained(operationPath, excludePath)) {
     let value = patch.value
 
     // because the paths overlap start at patchPath.length
-    // e.g.
-    // patch: { path:'/object', value:{ property: 'test' } }
+    // e.g.: patch: { path:'/object', value:{ property: 'test' } }
     // pathToExclude: '/object/property'
     // need to start at array idx 1, because value starts at idx 0
     for (let i = operationPath.length; i < excludePath.length - 1; i++) {
       if (excludePath[i] === ARRAY_INDEX_WILDCARD && Array.isArray(value)) {
+        // start over with each array element and make a fresh check
+        // Note: it can happen that array elements are rendered to: {}
+        //         we need to keep them to keep the order of array elements consistent
         value.forEach(elem => {
-          // start over with each array element and make a fresh check
-          // Note: it can happen that array elements are rendered to: {}
-          //         we need to keep them to keep the order of array elements consistent
           deepRemovePath({ path: '/', value: elem }, excludePath.slice(i + 1))
         })
 
