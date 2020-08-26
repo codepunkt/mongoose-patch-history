@@ -245,22 +245,20 @@ export default function(schema, opts) {
   // added to the associated patch collection
   function createPatch(document, queryOptions = {}) {
     const { _id: ref } = document
-    const ops = jsonpatch
-      .compare(
-        document.isNew ? {} : document._original || {},
-        toJSON(document.data())
-      )
-      .filter(op => {
-        if (options.excludes.length > 0) {
-          const pathArray = getArrayFromPath(op.path)
-          return (
-            !options.excludes.some(exclude =>
-              isPathCovered(exclude, pathArray)
-            ) && options.excludes.every(exclude => deepRemovePath(op, exclude))
-          )
-        }
-        return true
+    let ops = jsonpatch.compare(
+      document.isNew ? {} : document._original || {},
+      toJSON(document.data())
+    )
+    if (options.excludes.length > 0) {
+      ops = ops.filter(op => {
+        const pathArray = getArrayFromPath(op.path)
+        return (
+          !options.excludes.some(exclude =>
+            isPathCovered(exclude, pathArray)
+          ) && options.excludes.every(exclude => deepRemovePath(op, exclude))
+        )
       })
+    }
 
     // don't save a patch when there are no changes to save
     if (!ops.length) {
