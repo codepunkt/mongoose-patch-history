@@ -170,6 +170,8 @@ PostSchema.plugin(patchHistory, {
   An array of two functions that generate model and collection name based on the `name` option. Default: An array of [humps](https://github.com/domchristie/humps).pascalize and [humps](https://github.com/domchristie/humps).decamelize
 * `includes` <br/>
   Property definitions that will be included in the patch schema. Read more about includes in the next chapter of the documentation. Default: `{}`
+* `excludes` <br/>
+  Property paths that will be excluded in patches. Read more about excludes in the chapter after next. Default: `[]`
 * `trackOriginalValue` <br/>
   If enabled, the original value will be stored in the change patches under the attribute `originalValue`. Default: `false`
 
@@ -262,3 +264,36 @@ Post.findOneAndUpdate(
   { _user: mongoose.Types.ObjectId() }
 )
 ```
+
+### Excludes
+
+```javascript
+PostSchema.plugin(patchHistory, {
+  mongoose,
+  name: 'postPatches',
+  excludes: [
+    '/path/to/hidden/property',
+    '/path/into/array/*/property',
+    '/path/to/one/array/1/element'
+  ],
+})
+
+// Properties
+// /path/to/hidden:                   included
+// /path/to/hidden/property:          excluded
+// /path/to/hidden/property/nesting:  excluded
+
+// Array element properties
+// /path/into/array/0:                included
+// /path/into/array/345345/property:  excluded
+// /path/to/one/array/0/element:      included
+// /path/to/one/array/1/element:      excluded
+```
+
+This will exclude the given properties and *all nested* paths. Excluding `/` however will not work, since then you can just disable the plugin.
+
+- If a property is `{}` or `undefined` after processing all excludes statements, it will *not* be included in the patch.
+- Arrays work a little different. Since json-patch-operations work on the array index, array elements that are `{}` or `undefined` are still added to the patch. This brings support for later `remove` or `replace` operations to work as intended.<br/>
+  The `ARRAY_WILDCARD` `*` matches every array element.
+
+If there are any bugs experienced with the `excludes` feature please write an issue so we can fix it!
