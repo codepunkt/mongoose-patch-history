@@ -5,7 +5,7 @@ import jsonpatch from 'fast-json-patch'
 import { decamelize, pascalize } from 'humps'
 import { dropRightWhile, each, map, merge, omit, get, tail } from 'lodash'
 
-export const RollbackError = function(message, extra) {
+export const RollbackError = function (message, extra) {
   Error.captureStackTrace(this, this.constructor)
   this.name = 'RollbackError'
   this.message = message
@@ -13,7 +13,7 @@ export const RollbackError = function(message, extra) {
 
 require('util').inherits(RollbackError, Error)
 
-const createPatchModel = options => {
+const createPatchModel = (options) => {
   const def = {
     date: { type: Date, required: true, default: Date.now },
     ops: { type: [], required: true },
@@ -49,7 +49,7 @@ const ARRAY_INDEX_WILDCARD = '*'
  *
  * @param {string} path Path to split
  */
-const getArrayFromPath = path => path.replace(/^\//, '').split('/')
+const getArrayFromPath = (path) => path.replace(/^\//, '').split('/')
 
 /**
  * Checks the provided `json-patch-operation` on `excludePath`. This check joins the `path` and `value` property of the `operation` and removes any hit.
@@ -74,7 +74,7 @@ const deepRemovePath = (patch, excludePath) => {
         // start over with each array element and make a fresh check
         // Note: it can happen that array elements are rendered to: {}
         //         we need to keep them to keep the order of array elements consistent
-        value.forEach(elem => {
+        value.forEach((elem) => {
           deepRemovePath({ path: '/', value: elem }, excludePath.slice(i + 1))
         })
 
@@ -101,7 +101,7 @@ const deepRemovePath = (patch, excludePath) => {
  * Sanitizes a path `['']` to be used with `isPathContained()`
  * @param {String[]} path
  */
-const sanitizeEmptyPath = path =>
+const sanitizeEmptyPath = (path) =>
   path.length === 1 && path[0] === '' ? [] : path
 
 // Checks if 'fractionPath' is contained in fullPath
@@ -119,15 +119,15 @@ const entryIsIdentical = (entry1, entry2) => entry1 === entry2
 const matchesArrayWildcard = (entry1, entry2) =>
   isArrayIndexWildcard(entry1) && isIntegerGreaterEqual0(entry2)
 
-const isArrayIndexWildcard = entry => entry === ARRAY_INDEX_WILDCARD
+const isArrayIndexWildcard = (entry) => entry === ARRAY_INDEX_WILDCARD
 
-const isIntegerGreaterEqual0 = entry =>
+const isIntegerGreaterEqual0 = (entry) =>
   Number.isInteger(Number(entry)) && Number(entry) >= 0
 
 // used to convert bson to json - especially ObjectID references need
 // to be converted to hex strings so that the jsonpatch `compare` method
 // works correctly
-const toJSON = obj => JSON.parse(JSON.stringify(obj))
+const toJSON = (obj) => JSON.parse(JSON.stringify(obj))
 
 // helper function to merge query conditions after an update has happened
 // usefull if a property which was initially defined in _conditions got overwritten
@@ -137,13 +137,13 @@ const mergeQueryConditionsWithUpdate = (_conditions, _update) => {
   const conditions = Object.assign({}, conditions, update)
 
   // excluding updates other than $set
-  Object.keys(conditions).forEach(key => {
+  Object.keys(conditions).forEach((key) => {
     if (key.includes('$')) delete conditions[key]
   })
   return conditions
 }
 
-export default function(schema, opts) {
+export default function (schema, opts) {
   const options = merge({}, defaultOptions, opts)
 
   // get _id type from schema
@@ -160,7 +160,7 @@ export default function(schema, opts) {
 
   // used to compare instance data snapshots. depopulates instance,
   // removes version key and object id
-  schema.methods.data = function() {
+  schema.methods.data = function () {
     return this.toObject({
       depopulate: true,
       versionKey: false,
@@ -182,7 +182,7 @@ export default function(schema, opts) {
       .sort({ date: 1 })
       .exec()
       .then(
-        patches =>
+        (patches) =>
           new Promise((resolve, reject) => {
             // patch doesn't exist
             if (!~map(patches, 'id').indexOf(patchId)) {
@@ -190,7 +190,10 @@ export default function(schema, opts) {
             }
 
             // get all patches that should be applied
-            const apply = dropRightWhile(patches, patch => patch.id !== patchId)
+            const apply = dropRightWhile(
+              patches,
+              (patch) => patch.id !== patchId
+            )
 
             // if the patches that are going to be applied are all existing patches,
             // the rollback attempts to rollback to the latest patch
@@ -200,7 +203,7 @@ export default function(schema, opts) {
 
             // apply patches to `state`
             const state = {}
-            apply.forEach(patch => {
+            apply.forEach((patch) => {
               jsonpatch.applyPatch(state, patch.ops, true)
             })
 
@@ -223,7 +226,7 @@ export default function(schema, opts) {
 
   // after a document is initialized or saved, fresh snapshots of the
   // documents data are created
-  const snapshot = function() {
+  const snapshot = function () {
     this._original = toJSON(this.data())
   }
   schema.post('init', snapshot)
@@ -235,10 +238,10 @@ export default function(schema, opts) {
     const { _id: ref } = document
     return document.patches
       .find({ ref: document._id })
-      .then(patches => join(patches.map(patch => patch.remove())))
+      .then((patches) => join(patches.map((patch) => patch.remove())))
   }
 
-  schema.pre('remove', function(next) {
+  schema.pre('remove', function (next) {
     if (!options.removePatches) {
       return next()
     }
@@ -259,12 +262,12 @@ export default function(schema, opts) {
       toJSON(document.data())
     )
     if (options.excludes.length > 0) {
-      ops = ops.filter(op => {
+      ops = ops.filter((op) => {
         const pathArray = getArrayFromPath(op.path)
         return (
-          !options.excludes.some(exclude =>
+          !options.excludes.some((exclude) =>
             isPathContained(exclude, pathArray)
-          ) && options.excludes.every(exclude => deepRemovePath(op, exclude))
+          ) && options.excludes.every((exclude) => deepRemovePath(op, exclude))
         )
       })
     }
@@ -276,7 +279,7 @@ export default function(schema, opts) {
 
     // track original values if enabled
     if (options.trackOriginalValue) {
-      ops.map(entry => {
+      ops.map((entry) => {
         const path = tail(entry.path.split('/')).join('.')
         entry.originalValue = get(
           document.isNew ? {} : document._original,
@@ -295,20 +298,20 @@ export default function(schema, opts) {
     return document.patches.create(data)
   }
 
-  schema.pre('save', function(next) {
+  schema.pre('save', function (next) {
     createPatch(this)
       .then(() => next())
       .catch(next)
   })
 
-  schema.pre('findOneAndRemove', function(next) {
+  schema.pre('findOneAndRemove', function (next) {
     if (!options.removePatches) {
       return next()
     }
 
     this.model
       .findOne(this._conditions)
-      .then(original => deletePatches(original))
+      .then((original) => deletePatches(original))
       .then(() => next())
       .catch(next)
   })
@@ -318,7 +321,7 @@ export default function(schema, opts) {
   function preUpdateOne(next) {
     this.model
       .findOne(this._conditions)
-      .then(original => {
+      .then((original) => {
         if (original) this._originalId = original._id
         original = original || new this.model({})
         this._original = toJSON(original.data())
@@ -327,7 +330,7 @@ export default function(schema, opts) {
       .catch(next)
   }
 
-  schema.post('findOneAndUpdate', function(doc, next) {
+  schema.post('findOneAndUpdate', function (doc, next) {
     if (!this.options.new) {
       return postUpdateOne.call(this, {}, next)
     }
@@ -351,7 +354,7 @@ export default function(schema, opts) {
 
     this.model
       .findOne(conditions)
-      .then(doc => {
+      .then((doc) => {
         if (!doc) return next()
         doc._original = this._original
         return createPatch(doc, this.options)
@@ -366,7 +369,7 @@ export default function(schema, opts) {
   function preUpdateMany(next) {
     this.model
       .find(this._conditions)
-      .then(originals => {
+      .then((originals) => {
         const originalIds = []
         const originalData = []
         for (const original of originals) {
@@ -393,7 +396,7 @@ export default function(schema, opts) {
 
     this.model
       .find(conditions)
-      .then(docs =>
+      .then((docs) =>
         Promise.all(
           docs.map((doc, i) => {
             doc._original = this._originals[i]
@@ -408,14 +411,14 @@ export default function(schema, opts) {
   schema.pre('updateMany', preUpdateMany)
   schema.post('updateMany', postUpdateMany)
 
-  schema.pre('update', function(next) {
+  schema.pre('update', function (next) {
     if (this.options.multi) {
       preUpdateMany.call(this, next)
     } else {
       preUpdateOne.call(this, next)
     }
   })
-  schema.post('update', function(result, next) {
+  schema.post('update', function (result, next) {
     if (this.options.many) {
       postUpdateMany.call(this, result, next)
     } else {
