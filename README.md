@@ -14,7 +14,7 @@ To use **mongoose-patch-history** for an existing mongoose schema you can simply
 
 ```javascript
 import mongoose, { Schema } from 'mongoose'
-import patchHistory from 'mongoose-patch-history' 
+import patchHistory from 'mongoose-patch-history'
 
 /* or the following if not running your app with babel:
 const patchHistory = require('mongoose-patch-history').default;
@@ -148,8 +148,8 @@ post.rollback(patches[1].id, {}, false)
 
 The `rollback` method will throw an Error when invoked with an ObjectId that is
 
-* not a patch of the document
-* the latest patch of the document
+- not a patch of the document
+- the latest patch of the document
 
 ## Options
 
@@ -160,17 +160,19 @@ PostSchema.plugin(patchHistory, {
 })
 ```
 
-* `mongoose` :pushpin: _required_ <br/>
+- `mongoose` :pushpin: _required_ <br/>
   The mongoose instance to work with
-* `name` :pushpin: _required_ <br/>
+- `name` :pushpin: _required_ <br/>
   String where the names of both patch model and patch collection are generated from. By default, model name is the pascalized version and collection name is an undercore separated version
-* `removePatches` <br/>
+- `removePatches` <br/>
   Removes patches when origin document is removed. Default: `true`
-* `transforms` <br/>
+- `transforms` <br/>
   An array of two functions that generate model and collection name based on the `name` option. Default: An array of [humps](https://github.com/domchristie/humps).pascalize and [humps](https://github.com/domchristie/humps).decamelize
-* `includes` <br/>
+- `includes` <br/>
   Property definitions that will be included in the patch schema. Read more about includes in the next chapter of the documentation. Default: `{}`
-* `trackOriginalValue` <br/>
+- `excludes` <br/>
+  Property paths that will be excluded in patches. Read more about excludes in the [excludes chapter of the documentation](https://github.com/codepunkt/mongoose-patch-history#excludes). Default: `[]`
+- `trackOriginalValue` <br/>
   If enabled, the original value will be stored in the change patches under the attribute `originalValue`. Default: `false`
 
 ### Includes
@@ -203,7 +205,7 @@ There is an additional option that allows storing information in the patch docum
 
 ```javascript
 // save user as _user in versioned documents
-PostSchema.virtual('user').set(function(user) {
+PostSchema.virtual('user').set(function (user) {
   this._user = user
 })
 
@@ -262,3 +264,36 @@ Post.findOneAndUpdate(
   { _user: mongoose.Types.ObjectId() }
 )
 ```
+
+### Excludes
+
+```javascript
+PostSchema.plugin(patchHistory, {
+  mongoose,
+  name: 'postPatches',
+  excludes: [
+    '/path/to/hidden/property',
+    '/path/into/array/*/property',
+    '/path/to/one/array/1/element',
+  ],
+})
+
+// Properties
+// /path/to/hidden:                   included
+// /path/to/hidden/property:          excluded
+// /path/to/hidden/property/nesting:  excluded
+
+// Array element properties
+// /path/into/array/0:                included
+// /path/into/array/345345/property:  excluded
+// /path/to/one/array/0/element:      included
+// /path/to/one/array/1/element:      excluded
+```
+
+This will exclude the given properties and _all nested_ paths. Excluding `/` however will not work, since then you can just disable the plugin.
+
+- If a property is `{}` or `undefined` after processing all excludes statements, it will _not_ be included in the patch.
+- Arrays work a little different. Since json-patch-operations work on the array index, array elements that are `{}` or `undefined` are still added to the patch. This brings support for later `remove` or `replace` operations to work as intended.<br/>
+  The `ARRAY_WILDCARD` `*` matches every array element.
+
+If there are any bugs experienced with the `excludes` feature please write an issue so we can fix it!

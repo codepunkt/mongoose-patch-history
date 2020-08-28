@@ -58,6 +58,31 @@ const FruitSchema = new Schema({
 })
 FruitSchema.plugin(patchHistory, { mongoose, name: 'fruitPatches' })
 
+const ExcludeSchema = new Schema({
+  name: { type: String },
+  hidden: { type: String },
+  object: {
+    hiddenProperty: { type: String },
+    array: [
+      { hidden: { type: String }, property: { hidden: { type: String } } },
+    ],
+  },
+  array: [{ hiddenProperty: { type: String }, property: { type: String } }],
+  emptyArray: [{ hiddenProperty: { type: String } }],
+})
+ExcludeSchema.plugin(patchHistory, {
+  mongoose,
+  name: 'excludePatches',
+  excludes: [
+    '/hidden',
+    '/object/hiddenProperty',
+    '/object/array/1/hidden',
+    '/object/array/*/property/hidden',
+    '/array/*/hiddenProperty',
+    '/emptyArray/*/hiddenProperty',
+  ],
+})
+
 const SportSchema = new Schema({
   _id: { type: Number, default: random(100) },
   name: { type: String },
@@ -71,7 +96,7 @@ const PricePoolSchema = new Schema({
 PricePoolSchema.plugin(patchHistory, { mongoose, name: 'pricePoolPatches' })
 
 describe('mongoose-patch-history', () => {
-  let Comment, Post, Fruit, Sport, User, PricePool
+  let Comment, Post, Fruit, Sport, User, PricePool, Exclude
 
   before(done => {
     Comment = mongoose.model('Comment', CommentSchema)
@@ -80,6 +105,7 @@ describe('mongoose-patch-history', () => {
     Sport = mongoose.model('Sport', SportSchema)
     User = mongoose.model('User', new Schema())
     PricePool = mongoose.model('PricePool', PricePoolSchema)
+    Exclude = mongoose.model('Exclude', ExcludeSchema)
 
     mongoose
       .connect('mongodb://localhost/mongoose-patch-history', {
@@ -100,7 +126,9 @@ describe('mongoose-patch-history', () => {
           Post.Patches.deleteMany({}),
           User.deleteMany({}),
           PricePool.deleteMany({}),
-          PricePool.Patches.deleteMany({})
+          PricePool.Patches.deleteMany({}),
+          Exclude.deleteMany({}),
+          Exclude.Patches.deleteMany({})
         )
           .then(() => User.create())
           .then(() => done())
@@ -169,6 +197,51 @@ describe('mongoose-patch-history', () => {
         .then(() => done())
         .catch(done)
     })
+
+    describe('with exclude options', () => {
+      it('adds a patch containing no excluded properties', done => {
+        Exclude.create({
+          name: 'exclude1',
+          hidden: 'hidden',
+          object: {
+            hiddenProperty: 'hidden',
+            array: [
+              { hidden: 'h', property: { hidden: 'h' } },
+              { hidden: 'h', property: { hidden: 'h' } },
+              { hidden: 'h', property: { hidden: 'h' } },
+            ],
+          },
+          array: [
+            { hiddenProperty: 'hidden', property: 'visible' },
+            { hiddenProperty: 'hidden', property: 'visible' },
+          ],
+          emptyArray: [{ hiddenProperty: 'hidden' }],
+        })
+          .then(exclude => exclude.patches.find({ ref: exclude._id }))
+          .then(patches => {
+            assert.equal(patches.length, 1)
+            assert.equal(
+              JSON.stringify(patches[0].ops),
+              JSON.stringify([
+                { op: 'add', path: '/name', value: 'exclude1' },
+                {
+                  op: 'add',
+                  path: '/object',
+                  value: { array: [{ hidden: 'h' }, {}, { hidden: 'h' }] },
+                },
+                {
+                  op: 'add',
+                  path: '/array',
+                  value: [{ property: 'visible' }, { property: 'visible' }],
+                },
+                { op: 'add', path: '/emptyArray', value: [{}] },
+              ])
+            )
+          })
+          .then(() => done())
+          .catch(done)
+      })
+    })
   })
 
   describe('saving an existing document', () => {
@@ -204,6 +277,21 @@ describe('mongoose-patch-history', () => {
           assert.equal(patches.length, 1)
         })
         .then(done)
+        .catch(done)
+    })
+
+    it('with changes covered by exclude: doesn`t add a patch', done => {
+      Exclude.findOne({ name: 'exclude1' })
+        .then(exclude => {
+          exclude.object.hiddenProperty = 'test'
+          exclude.array[0].hiddenProperty = 'test'
+          return exclude.save()
+        })
+        .then(exclude => exclude.patches.find({ ref: exclude.id }))
+        .then(patches => {
+          assert.equal(patches.length, 1)
+        })
+        .then(() => done())
         .catch(done)
     })
   })
