@@ -371,6 +371,16 @@ describe('mongoose-patch-history', () => {
         })
         .catch(done)
     })
+
+    it('should work with options { new:true, rawResult:true }', (done) => {
+      Post.findOneAndUpdate(
+        { title: 'findOneAndUpdate2' },
+        { title: 'findOneAndUpdate1' },
+        { new: true, rawResult: true }
+      )
+        .then(() => done())
+        .catch(done)
+    })
   })
 
   describe('updating a document via updateOne()', () => {
