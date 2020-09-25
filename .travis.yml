@@ -6,12 +6,16 @@ node_js:
   - '12'
   - '14'
 env:
-  - MONGODB=3.6.2
-  - MONGODB=3.6.19
-  - MONGODB=4.0.20
-  - MONGODB=4.2.9
-  - MONGODB=4.4.0
-
+  - MONGODB=3.6.2 MONGOOSE=5.10.7
+  - MONGODB=3.6.19 MONGOOSE=5.10.7
+  - MONGODB=4.0.20 MONGOOSE=5.10.7
+  - MONGODB=4.2.9 MONGOOSE=5.10.7
+  - MONGODB=4.4.0 MONGOOSE=5.10.7
+  - MONGODB=3.6.2 MONGOOSE=5.6.13
+  - MONGODB=3.6.19 MONGOOSE=5.6.13
+  - MONGODB=4.0.20 MONGOOSE=5.6.13
+  - MONGODB=4.2.9 MONGOOSE=5.6.13
+  - MONGODB=4.4.0 MONGOOSE=5.6.13
 install:
   - wget http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1604-$MONGODB.tgz
   - tar xzf mongodb-linux-x86_64-ubuntu1604-$MONGODB.tgz
@@ -23,6 +27,7 @@ before_script:
   - sleep 15
   - mongo mydb_test --eval 'db.createUser({user:"travis",pwd:"test",roles:["readWrite"]});'
   - npm install
+  - npm install mongoose@${MONGOOSE}
 
 after_script:
   - istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec --compilers js:babel-register && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage
