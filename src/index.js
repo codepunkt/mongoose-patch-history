@@ -335,6 +335,10 @@ export default function (schema, opts) {
       return postUpdateOne.call(this, {}, next)
     }
 
+    if (this.options.new && this.options.rawResult) {
+      doc = doc.value
+    }
+
     doc._original = this._original
     createPatch(doc, this.options)
       .then(() => next())
