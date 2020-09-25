@@ -6,6 +6,7 @@ node_js:
   - '12'
   - '14'
 env:
+  - MONGODB=3.6.2
   - MONGODB=3.6.19
   - MONGODB=4.0.20
   - MONGODB=4.2.9
