@@ -346,7 +346,7 @@ export default function (schema, opts) {
   })
 
   function postUpdateOne(result, next) {
-    if (result.nModified === 0) return
+    if (result.nModified === 0 && !result.upserted) return next()
 
     let conditions
     if (this._originalId) conditions = { _id: { $eq: this._originalId } }
@@ -388,7 +388,7 @@ export default function (schema, opts) {
   }
 
   function postUpdateMany(result, next) {
-    if (result.nModified === 0) return
+    if (result.nModified === 0 && !result.upserted) return next()
 
     let conditions
     if (this._originalIds.length === 0)
