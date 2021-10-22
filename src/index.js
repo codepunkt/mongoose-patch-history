@@ -1,5 +1,4 @@
 import assert from 'assert'
-import { Schema } from 'mongoose'
 import Promise, { join } from 'bluebird'
 import jsonpatch from 'fast-json-patch'
 import { decamelize, pascalize } from 'humps'
@@ -24,7 +23,7 @@ const createPatchModel = (options) => {
     def[name] = omit(type, 'from')
   })
 
-  const PatchSchema = new Schema(def)
+  const PatchSchema = new options.mongoose.Schema(def)
 
   return options.mongoose.model(
     options.transforms[0](`${options.name}`),
