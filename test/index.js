@@ -108,12 +108,7 @@ describe('mongoose-patch-history', () => {
     Exclude = mongoose.model('Exclude', ExcludeSchema)
 
     mongoose
-      .connect('mongodb://localhost/mongoose-patch-history', {
-        useNewUrlParser: true,
-        useCreateIndex: true,
-        useUnifiedTopology: true,
-        useFindAndModify: false,
-      })
+      .connect('mongodb://localhost/mongoose-patch-history')
       .then(() => {
         join(
           Comment.deleteMany({}),
@@ -153,9 +148,9 @@ describe('mongoose-patch-history', () => {
       assert.throws(() => TestSchema.plugin(patchHistory, { mongoose }))
     })
 
-    it('throws when `data` instance method exists', () => {
+    it('throws when `_patchData` instance method exists', () => {
       const DataSchema = new Schema()
-      DataSchema.methods.data = () => {}
+      DataSchema.methods._patchData = () => {}
       assert.throws(() => DataSchema.plugin(patchHistory, { mongoose, name }))
     })
 
@@ -525,10 +520,10 @@ describe('mongoose-patch-history', () => {
 
   describe('upserting a document', () => {
     it('with changes: adds a patch', (done) => {
-      Post.update(
+      Post.updateOne(
         { title: 'upsert0' },
         { title: 'upsert1' },
-        { upsert: true, multi: true }
+        { upsert: true },
       )
         .then(() => Post.find({ title: 'upsert1' }))
         .then((posts) =>
@@ -545,16 +540,16 @@ describe('mongoose-patch-history', () => {
         .catch(done)
     })
 
-    it('without changes: adds a patch', (done) => {
-      Post.update(
+    it('without changes: doesn`t add a patch', (done) => {
+      Post.updateOne(
         { title: 'upsert1' },
         { title: 'upsert1' },
-        { upsert: true, multi: true }
+        { upsert: true },
       )
         .then(() => Post.find({ title: 'upsert1' }))
         .then((posts) => posts[0].patches.find({ ref: posts[0].id }))
         .then((patches) => {
-          assert.equal(patches.length, 2)
+          assert.equal(patches.length, 1)
         })
         .then(done)
         .catch(done)
@@ -578,10 +573,10 @@ describe('mongoose-patch-history', () => {
 
   describe('update with multi', () => {
     it('should not throw "TypeError: Cannot set property _original of null" error if doc does not exist', (done) => {
-      Post.update(
+      Post.updateMany(
         { title: { $in: ['foobar'] } },
         { title: 'barfoo' },
-        { multi: true, upsert: false }
+        { upsert: false }
       )
         .then(() => done())
         .catch(done)

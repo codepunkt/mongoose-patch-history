@@ -1,5 +1,4 @@
 import assert from 'assert'
-import { Schema } from 'mongoose'
 import Promise, { join } from 'bluebird'
 import jsonpatch from 'fast-json-patch'
 import { decamelize, pascalize } from 'humps'
@@ -24,7 +23,7 @@ const createPatchModel = (options) => {
     def[name] = omit(type, 'from')
   })
 
-  const PatchSchema = new Schema(def)
+  const PatchSchema = new options.mongoose.Schema(def)
 
   return options.mongoose.model(
     options.transforms[0](`${options.name}`),
@@ -155,12 +154,15 @@ export default function (schema, opts) {
   // validate parameters
   assert(options.mongoose, '`mongoose` option must be defined')
   assert(options.name, '`name` option must be defined')
-  assert(!schema.methods.data, 'conflicting instance method: `data`')
+  assert(
+    !schema.methods._patchData,
+    'conflicting instance method: `_patchData`'
+  )
   assert(options._idType, 'schema is missing an `_id` property')
 
   // used to compare instance data snapshots. depopulates instance,
   // removes version key and object id
-  schema.methods.data = function () {
+  schema.methods._patchData = function () {
     return this.toObject({
       depopulate: true,
       versionKey: false,
@@ -227,7 +229,7 @@ export default function (schema, opts) {
   // after a document is initialized or saved, fresh snapshots of the
   // documents data are created
   const snapshot = function () {
-    this._original = toJSON(this.data())
+    this._original = toJSON(this._patchData())
   }
   schema.post('init', snapshot)
   schema.post('save', snapshot)
@@ -259,7 +261,7 @@ export default function (schema, opts) {
     const { _id: ref } = document
     let ops = jsonpatch.compare(
       document.isNew ? {} : document._original || {},
-      toJSON(document.data())
+      toJSON(document._patchData())
     )
     if (options.excludes.length > 0) {
       ops = ops.filter((op) => {
@@ -324,7 +326,7 @@ export default function (schema, opts) {
       .then((original) => {
         if (original) this._originalId = original._id
         original = original || new this.model({})
-        this._original = toJSON(original.data())
+        this._original = toJSON(original._patchData())
       })
       .then(() => next())
       .catch(next)
@@ -346,7 +348,7 @@ export default function (schema, opts) {
   })
 
   function postUpdateOne(result, next) {
-    if (result.nModified === 0 && !result.upserted) return next()
+    if (result.modifiedCount === 0 && result.upsertedCount === 0) return next()
 
     let conditions
     if (this._originalId) conditions = { _id: { $eq: this._originalId } }
@@ -378,7 +380,7 @@ export default function (schema, opts) {
         const originalData = []
         for (const original of originals) {
           originalIds.push(original._id)
-          originalData.push(toJSON(original.data()))
+          originalData.push(toJSON(original._patchData()))
         }
         this._originalIds = originalIds
         this._originals = originalData
@@ -388,7 +390,7 @@ export default function (schema, opts) {
   }
 
   function postUpdateMany(result, next) {
-    if (result.nModified === 0 && !result.upserted) return next()
+    if (result.modifiedCount === 0 && result.upsertedCount === 0) return next()
 
     let conditions
     if (this._originalIds.length === 0)
