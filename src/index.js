@@ -423,7 +423,7 @@ export default function (schema, opts) {
     }
   })
   schema.post('update', function (result, next) {
-    if (this.options.many) {
+    if (this.options.multi) {
       postUpdateMany.call(this, result, next)
     } else {
       postUpdateOne.call(this, result, next)

@@ -545,7 +545,7 @@ describe('mongoose-patch-history', () => {
         .catch(done)
     })
 
-    it('without changes: adds a patch', (done) => {
+    it('without changes: doesn\'t add a patch', (done) => {
       Post.update(
         { title: 'upsert1' },
         { title: 'upsert1' },
@@ -554,7 +554,7 @@ describe('mongoose-patch-history', () => {
         .then(() => Post.find({ title: 'upsert1' }))
         .then((posts) => posts[0].patches.find({ ref: posts[0].id }))
         .then((patches) => {
-          assert.equal(patches.length, 2)
+          assert.equal(patches.length, 1)
         })
         .then(done)
         .catch(done)
