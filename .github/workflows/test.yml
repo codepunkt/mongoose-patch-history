@@ -39,6 +39,8 @@ jobs:
       env:
         CI: true
 
+    - run: npx nyc@latest mocha
+    
     - run: |
         istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec --compilers js:babel-register \
         && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js \
