@@ -38,3 +38,13 @@ jobs:
     - run: npm test
       env:
         CI: true
+
+    - run: |
+        istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec --compilers js:babel-register \
+        && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js \
+        && rm -rf ./coverage
+    
+    - name: Coveralls
+      uses: coverallsapp/github-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
