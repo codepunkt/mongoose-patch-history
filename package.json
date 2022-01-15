@@ -43,6 +43,17 @@
     "url": "git://github.com/gonsfx/mongoose-patch-history"
   },
   "bugs": "https://github.com/gonsfx/mongoose-patch-history/issues",
+  "nyc": {
+    "require": [
+      "@babel/register"
+    ],
+    "reporter": [
+      "lcov",
+      "text"
+    ],
+    "sourceMap": false,
+    "instrument": false
+  },
   "keywords": [
     "mongo",
     "Mongo",
