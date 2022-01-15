@@ -20,33 +20,28 @@ jobs:
         mongodb-version: ['4.2', '4.4']
 
     steps:
-    - name: Git checkout
-      uses: actions/checkout@v2
+      - name: Git checkout
+        uses: actions/checkout@v2
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v2
-      with:
-        node-version: ${{ matrix.node-version }}
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
 
-    - name: Start MongoDB
-      uses: supercharge/mongodb-github-action@1.7.0
-      with:
-        mongodb-version: ${{ matrix.mongodb-version }}
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.7.0
+        with:
+          mongodb-version: ${{ matrix.mongodb-version }}
 
-    - run: npm install
+      - run: npm install
 
-    - run: npm test
-      env:
-        CI: true
+      - run: npm test
+        env:
+          CI: true
 
-    - run: npx nyc@latest mocha
-    
-    - run: |
-        istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec --compilers js:babel-register \
-        && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js \
-        && rm -rf ./coverage
-    
-    - name: Coveralls
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm run nyc
+
+      - name: Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
