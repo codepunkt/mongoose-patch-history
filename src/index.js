@@ -1,6 +1,5 @@
 import assert from 'assert'
 import { Schema } from 'mongoose'
-import Promise, { join } from 'bluebird'
 import jsonpatch from 'fast-json-patch'
 import { decamelize, pascalize } from 'humps'
 import { dropRightWhile, each, map, merge, omit, get, tail } from 'lodash'
@@ -238,7 +237,7 @@ export default function (schema, opts) {
     const { _id: ref } = document
     return document.patches
       .find({ ref: document._id })
-      .then((patches) => join(patches.map((patch) => patch.remove())))
+      .then((patches) => Promise.all(patches.map((patch) => patch.remove())))
   }
 
   schema.pre('remove', function (next) {
