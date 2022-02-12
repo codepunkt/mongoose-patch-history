@@ -11,15 +11,15 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@babel/register": "^7.16.9",
     "fast-json-patch": "^2.2.1",
     "humps": "^2.0.1",
     "lodash": "^4.17.21",
     "mongoose": "^5.12.3"
   },
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-preset-es2015": "^6.22.0",
+    "@babel/cli": "^7.16.8",
+    "@babel/preset-env": "^7.16.8",
+    "@babel/register": "^7.16.9",
     "bluebird": "^3.5.1",
     "coveralls": "^3.0.0",
     "istanbul": "^0.4.5",
@@ -30,11 +30,12 @@
   },
   "scripts": {
     "addCompile": "git add lib/",
-    "coverage": "istanbul cover _mocha -- --require babel-register",
+    "coverage": "istanbul cover _mocha -- --require @babel/register",
     "compile": "rm -rf lib/ && babel -d lib/ src/",
-    "prepublish": "npm run compile",
+    "prepublishOnly": "npm run compile",
     "prettier": "prettier --no-semi --single-quote --trailing-comma es5 --write src/**/*.js",
-    "test": "mocha --require babel-register"
+    "test": "mocha --require @babel/register",
+    "nyc": "nyc --require @babel/register --reporter=lcovonly npm test -a"
   },
   "pre-commit": {
     "run": "prettier, test, compile, addCompile",
@@ -45,17 +46,6 @@
     "url": "git://github.com/gonsfx/mongoose-patch-history"
   },
   "bugs": "https://github.com/gonsfx/mongoose-patch-history/issues",
-  "nyc": {
-    "require": [
-      "@babel/register"
-    ],
-    "reporter": [
-      "lcov",
-      "text"
-    ],
-    "sourceMap": false,
-    "instrument": false
-  },
   "keywords": [
     "mongo",
     "Mongo",
