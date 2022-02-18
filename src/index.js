@@ -1,7 +1,7 @@
 import assert from 'assert'
 import jsonpatch from 'fast-json-patch'
 import { decamelize, pascalize } from 'humps'
-import { dropRightWhile, each, map, merge, omit, get, tail } from 'lodash'
+import { dropRightWhile, each, get, map, merge, omit, tail } from 'lodash'
 
 export const RollbackError = function (message, extra) {
   Error.captureStackTrace(this, this.constructor)
@@ -329,18 +329,7 @@ export default function (schema, opts) {
   }
 
   schema.post('findOneAndUpdate', function (doc, next) {
-    if (!this.options.new) {
-      return postUpdateOne.call(this, {}, next)
-    }
-
-    if (this.options.new && this.options.rawResult) {
-      doc = doc.value
-    }
-
-    doc._original = this._original
-    createPatch(doc, this.options)
-      .then(() => next())
-      .catch(next)
+    return postUpdateOne.call(this, {}, next)
   })
 
   function postUpdateOne(result, next) {
