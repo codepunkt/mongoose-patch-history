@@ -1,6 +1,6 @@
 import assert from 'assert'
-import { map, random } from 'lodash'
 import Promise, { join } from 'bluebird'
+import { map, random } from 'lodash'
 import mongoose, { Schema } from 'mongoose'
 import patchHistory, { RollbackError } from '../src'
 
@@ -372,6 +372,28 @@ describe('mongoose-patch-history', () => {
         .catch(done)
     })
 
+    it('should not throw "TypeError: Cannot set property _original of null" error with options { new:true } if doc does not exist', (done) => {
+      Post.findOneAndUpdate(
+        { title: 'the_answer_to_life' },
+        { title: '42', comments: 'thanks for all the fish' },
+        { new: true }
+      )
+        .then(() => {
+          done()
+        })
+        .catch(done)
+    })
+
+    it('should work with options { new:true }', (done) => {
+      Post.findOneAndUpdate(
+        { title: 'findOneAndUpdate1' },
+        { title: 'findOneAndUpdate2' },
+        { new: true }
+      )
+        .then(() => done())
+        .catch(done)
+    })
+
     it('should work with options { new:true, rawResult:true }', (done) => {
       Post.findOneAndUpdate(
         { title: 'findOneAndUpdate2' },
@@ -545,7 +567,7 @@ describe('mongoose-patch-history', () => {
         .catch(done)
     })
 
-    it('without changes: doesn\'t add a patch', (done) => {
+    it("without changes: doesn't add a patch", (done) => {
       Post.update(
         { title: 'upsert1' },
         { title: 'upsert1' },
