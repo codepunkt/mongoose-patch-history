@@ -1,14 +1,9 @@
 {
-  "name": "mongoose-patch-history",
-  "version": "2.0.0",
-  "description": "Mongoose plugin that saves a history of JSON patch operations for all documents belonging to a schema in an associated 'patches' collection",
+  "name": "mongoose-patch-history-nm",
+  "version": "1.0.0",
+  "description": "Forked from mongoose-patch-history: Mongoose plugin that saves a history of JSON patch operations for all documents belonging to a schema in an associated 'patches' collection",
   "main": "lib/index.js",
-  "author": "Christoph Werner <christoph@codepunkt.de>",
-  "contributors": [
-    "Robin Weinreich <robin.weinreich@posteo.de>",
-    "Brett Ausmeier <brett@ausmeier.co.za>",
-    "Ava Johnson <ava.johnson@zohomail.com>"
-  ],
+  "author": "nymmble inc. <dev@nymmble.com>",
   "license": "MIT",
   "dependencies": {
     "@babel/register": "^7.16.9",
@@ -23,7 +18,7 @@
     "coveralls": "^3.0.0",
     "istanbul": "^0.4.5",
     "mocha": "^8.1.1",
-    "mongoose": "^5.12.3",
+    "mongoose": "^7.0.2",
     "nyc": "^15.1.0",
     "pre-commit": "^1.2.2",
     "prettier": "^2.1.1"
@@ -42,9 +37,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/gonsfx/mongoose-patch-history"
+    "url": "https://github.com/nymmble-dev/mongoose-patch-history"
   },
-  "bugs": "https://github.com/gonsfx/mongoose-patch-history/issues",
+  "bugs": "https://github.com/nymmble-dev/mongoose-patch-history/issues",
   "nyc": {
     "require": [
       "@babel/register"

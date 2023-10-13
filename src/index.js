@@ -233,10 +233,7 @@ export default function (schema, opts) {
   // when a document is removed and `removePatches` is not set to false ,
   // all patch documents from the associated patch collection are also removed
   function deletePatches(document) {
-    const { _id: ref } = document
-    return document.patches
-      .find({ ref: document._id })
-      .then((patches) => Promise.all(patches.map((patch) => patch.remove())))
+    return document.patches.deleteMany({ ref: document._id })
   }
 
   schema.pre('remove', function (next) {
